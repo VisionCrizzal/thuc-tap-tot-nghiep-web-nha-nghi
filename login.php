@@ -1,6 +1,6 @@
 <?php
 // login.php — Đăng nhập thống nhất, tự nhận diện vai trò
-session_start();
+require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
 
 $error = '';
