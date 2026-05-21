@@ -52,7 +52,7 @@ tail -f /Applications/XAMPP/xamppfiles/logs/error_log
 ```
 khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdocs/khachsan/
 ├── index.php                      ✅ Trang chủ (DONE)
-├── login.php                      ✅ Đăng nhập chung — 3 tab vai trò (DONE)
+├── login.php                      ✅ Đăng nhập chung — 1 form tự nhận diện vai trò (DONE)
 ├── register.php                   🔲 Đăng ký khách hàng (TODO)
 │
 ├── config/
@@ -174,10 +174,10 @@ getAllServices(PDO $pdo): array
 // Khách hàng:     kh_id | kh_name | kh_role ('khachhang')
 ```
 
-### Login routing (login.php — 3 tab)
-- Khách Hàng → KHACH_HANG table → customer/dashboard.php
-- Nhân Viên  → TAI_KHOAN (nhanvien) → staff/dashboard.php
-- Quản Lý    → TAI_KHOAN (admin) → admin/dashboard.php
+### Login routing (login.php — 1 form, tự nhận diện)
+- Thử KHACH_HANG trước → nếu khớp → customer/dashboard.php
+- Thử TAI_KHOAN sau → VaiTro='nhanvien' → staff/dashboard.php
+- Thử TAI_KHOAN sau → VaiTro='admin' → admin/dashboard.php
 
 ---
 
@@ -193,6 +193,7 @@ getAllServices(PDO $pdo): array
 | 6 | Tạo login.php (bị 404), fix CSS warning | login.php 3 tab + fix empty CSS ruleset | v6 |
 | 7 | Room dashboard filter + thu gọn, tạo CLAUDE.md | Dashboard filter tabs + CLAUDE.md | v7 |
 | 8 | Trang admin dashboard đầy đủ chức năng quản lý | admin/dashboard.php — sidebar, 5 tab, CRUD đặt phòng + nhân viên + báo cáo | v8 |
+| 9 | Fix bug đăng nhập admin, xóa 3 tab vai trò | login.php viết lại: 1 form thống nhất, tự nhận diện vai trò từ DB | v9 |
 
 ---
 
@@ -208,6 +209,7 @@ getAllServices(PDO $pdo): array
 | 6 | Scroll reveal conflict với filter | obs.observe sau khi filter ẩn card | Filter trước, reveal sau |
 | 7 | Xóa nhân viên lỗi FK constraint | TAI_KHOAN.MaNV FK → NHAN_VIEN, xóa hard sẽ fail nếu có DAT_PHONG | Dùng soft delete: TrangThai='Ngừng hoạt động' thay vì DELETE |
 | 8 | NVARCHAR không tồn tại MySQL | MySQL không hỗ trợ NVARCHAR native (alias VARCHAR với utf8mb4) | Đã dùng utf8mb4 ở database level, hoạt động bình thường |
+| 9 | Admin login không vào được trang admin | login.php dùng 3 tab: nếu chọn sai tab thì báo "không có quyền" dù đúng mật khẩu | Xóa tab, dùng 1 form, tự nhận diện vai trò từ VaiTro trong TAI_KHOAN |
 
 ---
 

@@ -1,11 +1,9 @@
 <?php
-// login.php — Trang đăng nhập chung cho tất cả người dùng
+// login.php — Đăng nhập thống nhất, tự nhận diện vai trò
 session_start();
 require_once __DIR__ . '/config/db.php';
 
-$error  = '';
-$role   = $_POST['role']     ?? $_GET['role']  ?? 'khachhang';
-$role   = in_array($role, ['khachhang','nhanvien','quanly']) ? $role : 'khachhang';
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
@@ -13,11 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$username || !$password) {
         $error = 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.';
-    } elseif ($role === 'khachhang') {
-        // ---- Đăng nhập Khách hàng (bảng KHACH_HANG) ----
+    } else {
+        // 1. Thử khách hàng (bảng KHACH_HANG)
         $stmt = $pdo->prepare("SELECT * FROM KHACH_HANG WHERE TenTaiKhoan = :u");
         $stmt->execute([':u' => $username]);
         $kh = $stmt->fetch();
+
         if ($kh && password_verify($password, $kh['MatKhau'])) {
             $_SESSION['kh_id']   = $kh['MaKH'];
             $_SESSION['kh_name'] = $kh['HoTen'];
@@ -25,34 +24,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: customer/dashboard.php');
             exit;
         }
-        $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
-    } else {
-        // ---- Đăng nhập Nhân viên / Quản lý (bảng TAI_KHOAN) ----
-        $expectedRole = ($role === 'quanly') ? 'admin' : 'nhanvien';
+
+        // 2. Thử nhân viên / quản lý (bảng TAI_KHOAN)
         $user = loginStaff($pdo, $username, $password);
         if ($user) {
-            if ($user['VaiTro'] === $expectedRole || $user['VaiTro'] === 'admin') {
-                $_SESSION['staff_id']   = $user['TenTK'];
-                $_SESSION['staff_name'] = $user['HoTen'] ?? $user['TenTK'];
-                $_SESSION['staff_role'] = $user['VaiTro'];
-                $_SESSION['staff_maNV'] = $user['MaNV'];
-                header('Location: ' . ($user['VaiTro'] === 'admin' ? 'admin/dashboard.php' : 'staff/dashboard.php'));
-                exit;
-            }
-            $error = 'Tài khoản này không có quyền đăng nhập với vai trò đã chọn.';
-        } else {
-            $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
+            $_SESSION['staff_id']   = $user['TenTK'];
+            $_SESSION['staff_name'] = $user['HoTen'] ?? $user['TenTK'];
+            $_SESSION['staff_role'] = $user['VaiTro'];
+            $_SESSION['staff_maNV'] = $user['MaNV'];
+            $dest = ($user['VaiTro'] === 'admin') ? 'admin/dashboard.php' : 'staff/dashboard.php';
+            header('Location: ' . $dest);
+            exit;
         }
+
+        $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
     }
 }
-
-// Labels cho từng vai trò
-$roleLabels = [
-    'khachhang' => ['icon'=>'🧳','title'=>'Khách Hàng',  'sub'=>'Đặt phòng & theo dõi lịch sử',  'placeholder_u'=>'Email hoặc tên đăng nhập'],
-    'nhanvien'  => ['icon'=>'🏨','title'=>'Nhân Viên',    'sub'=>'Quản lý check-in / check-out',    'placeholder_u'=>'Tên tài khoản nhân viên'],
-    'quanly'    => ['icon'=>'👑','title'=>'Quản Lý',      'sub'=>'Toàn quyền quản trị hệ thống',   'placeholder_u'=>'Tên tài khoản quản lý'],
-];
-$cur = $roleLabels[$role];
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -93,56 +80,39 @@ body::before{content:'';position:fixed;top:-120px;left:-120px;width:400px;height
 body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;height:300px;
   background:radial-gradient(circle,rgba(29,78,216,.12),transparent 70%);border-radius:50%;pointer-events:none}
 
-.login-wrap{width:100%;max-width:460px;animation:cardIn .6s cubic-bezier(.34,1.56,.64,1) both}
+.login-wrap{width:100%;max-width:440px;animation:cardIn .6s cubic-bezier(.34,1.56,.64,1) both}
 @keyframes cardIn{from{transform:translateY(28px) scale(.97);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
 
 /* Brand */
 .brand-area{text-align:center;margin-bottom:24px}
-.brand-logo{width:54px;height:54px;border-radius:12px;object-fit:cover;
-  border:3px solid var(--blue-light);box-shadow:0 4px 16px rgba(29,78,216,.25);margin-bottom:12px}
-.brand-name{font-family:var(--serif);font-size:1.9rem;font-weight:600;color:var(--blue-dark);letter-spacing:1px}
+.brand-logo{width:60px;height:60px;border-radius:14px;object-fit:cover;
+  border:3px solid var(--blue-light);box-shadow:0 4px 20px rgba(29,78,216,.28);margin-bottom:12px}
+.brand-name{font-family:var(--serif);font-size:2rem;font-weight:600;color:var(--blue-dark);letter-spacing:1px}
 .brand-sub{font-size:0.68rem;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--blue-light);margin-top:4px}
 
 /* Card */
-.card{background:#fff;border-radius:16px;border:1.5px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden}
-
-/* Role tabs */
-.role-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--blue-pale);
-  border-bottom:1.5px solid var(--border)}
-.role-tab{
-  padding:13px 8px;text-align:center;cursor:pointer;
-  font-size:0.75rem;font-weight:600;letter-spacing:0.5px;
-  color:var(--muted);transition:all .25s;text-decoration:none;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  border-right:1px solid var(--border);
-}
-.role-tab:last-child{border-right:none}
-.role-tab:hover{background:var(--blue-mid);color:var(--blue)}
-.role-tab.active{background:#fff;color:var(--blue-dark);border-bottom:2px solid var(--blue);
-  margin-bottom:-1.5px}
-.tab-icon{font-size:1.1rem}
-.tab-label{text-transform:uppercase;letter-spacing:1px;font-size:0.68rem}
+.card{background:#fff;border-radius:18px;border:1.5px solid var(--border);box-shadow:var(--shadow-lg);overflow:hidden}
 
 /* Card header */
 .card-header{
   background:linear-gradient(135deg,var(--blue-dark),var(--blue));
-  padding:20px 28px 18px;
-  display:flex;align-items:center;gap:12px;
+  padding:22px 30px 20px;
+  display:flex;align-items:center;gap:14px;
 }
-.header-icon{width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:10px;
-  display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
-.header-title{font-family:var(--serif);font-size:1.1rem;font-weight:600;color:#fff;line-height:1.2}
-.header-desc{font-size:0.71rem;color:rgba(255,255,255,.65);letter-spacing:1px;margin-top:2px}
+.header-icon{width:44px;height:44px;background:rgba(255,255,255,.15);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.header-title{font-family:var(--serif);font-size:1.15rem;font-weight:600;color:#fff;line-height:1.2}
+.header-desc{font-size:0.71rem;color:rgba(255,255,255,.65);letter-spacing:1px;margin-top:3px}
 
 /* Body */
-.card-body{padding:26px 28px 28px}
+.card-body{padding:28px 30px 30px}
 
 /* Error */
 .alert-error{
   display:flex;align-items:flex-start;gap:10px;
   background:#fff0f0;border:1.5px solid #fca5a5;border-left:4px solid #ef4444;
-  color:#dc2626;padding:11px 13px;border-radius:8px;
-  font-size:0.83rem;line-height:1.5;margin-bottom:20px;
+  color:#dc2626;padding:12px 14px;border-radius:9px;
+  font-size:0.83rem;line-height:1.5;margin-bottom:22px;
   animation:shake .4s ease
 }
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
@@ -150,33 +120,40 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
 /* Form */
 .form-group{margin-bottom:18px}
 .form-label{display:block;font-size:0.68rem;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+  text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .input-wrap{position:relative}
-.input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+.input-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);
   font-size:1rem;color:var(--blue-light);pointer-events:none}
 .form-input{
-  width:100%;padding:12px 13px 12px 38px;
-  font-family:var(--font);font-size:0.92rem;color:var(--text);
+  width:100%;padding:13px 13px 13px 40px;
+  font-family:var(--font);font-size:0.93rem;color:var(--text);
   background:var(--blue-pale);border:1.5px solid var(--border);
-  border-radius:9px;outline:none;transition:all .25s;
+  border-radius:10px;outline:none;transition:all .25s;
 }
 .form-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(29,78,216,.12)}
 .form-input::placeholder{color:#94a3b8;font-family:var(--font)}
 
+/* Toggle mật khẩu */
+.toggle-pw{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);
+  padding:4px;border-radius:6px;transition:color .2s}
+.toggle-pw:hover{color:var(--blue)}
+#password{padding-right:40px}
+
 /* Submit */
 .btn-login{
-  width:100%;padding:13px;font-family:var(--font);font-size:0.9rem;font-weight:700;
+  width:100%;padding:14px;font-family:var(--font);font-size:0.9rem;font-weight:700;
   letter-spacing:2px;text-transform:uppercase;color:#fff;
   background:linear-gradient(135deg,var(--blue-dark),var(--blue));
-  border:none;border-radius:9px;cursor:pointer;transition:all .3s;
-  box-shadow:0 4px 16px rgba(29,78,216,.35);margin-top:6px;
+  border:none;border-radius:10px;cursor:pointer;transition:all .3s;
+  box-shadow:0 4px 18px rgba(29,78,216,.38);margin-top:6px;
   position:relative;overflow:hidden;
 }
 .btn-login::after{content:'';position:absolute;inset:0;
   background:linear-gradient(135deg,transparent,rgba(255,255,255,.1),transparent);
   transform:translateX(-100%);transition:transform .4s}
 .btn-login:hover::after{transform:translateX(100%)}
-.btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(29,78,216,.45)}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(29,78,216,.48)}
 .btn-login:active{transform:translateY(0)}
 
 /* Register link */
@@ -188,7 +165,7 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
 .register-line a:hover{color:var(--blue-dark)}
 
 /* Divider */
-.divider{display:flex;align-items:center;gap:10px;margin:16px 0 0}
+.divider{display:flex;align-items:center;gap:10px;margin:18px 0 0}
 .divider-line{flex:1;height:1px;background:var(--border)}
 .divider-text{font-size:0.67rem;font-weight:600;letter-spacing:1.5px;
   text-transform:uppercase;color:var(--muted);white-space:nowrap}
@@ -213,28 +190,12 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
 
   <div class="card">
 
-    <!-- ROLE TABS -->
-    <div class="role-tabs">
-      <a href="?role=khachhang" class="role-tab <?= $role==='khachhang'?'active':'' ?>">
-        <span class="tab-icon">🧳</span>
-        <span class="tab-label">Khách Hàng</span>
-      </a>
-      <a href="?role=nhanvien" class="role-tab <?= $role==='nhanvien'?'active':'' ?>">
-        <span class="tab-icon">🏨</span>
-        <span class="tab-label">Nhân Viên</span>
-      </a>
-      <a href="?role=quanly" class="role-tab <?= $role==='quanly'?'active':'' ?>">
-        <span class="tab-icon">👑</span>
-        <span class="tab-label">Quản Lý</span>
-      </a>
-    </div>
-
     <!-- HEADER -->
     <div class="card-header">
-      <div class="header-icon"><?= $cur['icon'] ?></div>
+      <div class="header-icon">🔑</div>
       <div>
-        <div class="header-title"><?= $cur['title'] ?></div>
-        <div class="header-desc"><?= $cur['sub'] ?></div>
+        <div class="header-title">Đăng Nhập</div>
+        <div class="header-desc">Nhập thông tin tài khoản của bạn</div>
       </div>
     </div>
 
@@ -246,14 +207,13 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
       <?php endif; ?>
 
       <form method="POST">
-        <input type="hidden" name="role" value="<?= htmlspecialchars($role) ?>">
 
         <div class="form-group">
           <label class="form-label">Tên Đăng Nhập</label>
           <div class="input-wrap">
             <span class="input-icon">👤</span>
             <input type="text" name="username" class="form-input"
-                   placeholder="<?= $cur['placeholder_u'] ?>"
+                   placeholder="Nhập tên đăng nhập"
                    value="<?= htmlspecialchars($_POST['username'] ?? '') ?>"
                    autocomplete="username" autofocus>
           </div>
@@ -263,19 +223,18 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
           <label class="form-label">Mật Khẩu</label>
           <div class="input-wrap">
             <span class="input-icon">🔒</span>
-            <input type="password" name="password" class="form-input"
+            <input type="password" id="password" name="password" class="form-input"
                    placeholder="••••••••" autocomplete="current-password">
+            <button type="button" class="toggle-pw" onclick="togglePw()" title="Hiện/ẩn mật khẩu">👁</button>
           </div>
         </div>
 
         <button type="submit" class="btn-login">→ Đăng Nhập</button>
       </form>
 
-      <?php if ($role === 'khachhang'): ?>
       <div class="register-line">
         Chưa có tài khoản? <a href="register.php">Đăng ký ngay →</a>
       </div>
-      <?php endif; ?>
 
       <div class="divider">
         <div class="divider-line"></div>
@@ -287,6 +246,13 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
     </div>
   </div>
 </div>
+
+<script>
+function togglePw() {
+  const el = document.getElementById('password');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+</script>
 
 </body>
 </html>
