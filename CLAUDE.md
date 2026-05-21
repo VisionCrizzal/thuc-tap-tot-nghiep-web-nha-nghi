@@ -53,7 +53,7 @@ tail -f /Applications/XAMPP/xamppfiles/logs/error_log
 khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdocs/khachsan/
 ├── index.php                      ✅ Trang chủ (DONE)
 ├── login.php                      ✅ Đăng nhập chung — 1 form tự nhận diện vai trò (DONE)
-├── register.php                   🔲 Đăng ký khách hàng (TODO)
+├── register.php                   ✅ Đăng ký khách hàng (DONE)
 │
 ├── config/
 │   └── db.php                     ✅ PDO connection + helpers (DONE)
@@ -71,7 +71,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   └── dashboard.php              🔲 Thống kê quản lý (TODO)
 │
 ├── customer/
-│   └── dashboard.php              🔲 Lịch sử KH (TODO)
+│   └── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử (DONE)
 │
 ├── hotel_db.sql                   ✅ Schema đầy đủ + data mẫu
 ├── HUONG_DAN.md                   Cài đặt XAMPP
@@ -195,6 +195,7 @@ getAllServices(PDO $pdo): array
 | 8 | Trang admin dashboard đầy đủ chức năng quản lý | admin/dashboard.php — sidebar, 5 tab, CRUD đặt phòng + nhân viên + báo cáo | v8 |
 | 9 | Fix bug đăng nhập admin, xóa 3 tab vai trò | login.php viết lại: 1 form thống nhất, tự nhận diện vai trò từ DB | v9 |
 | 10 | Fix session conflict với phpMyAdmin | Tạo config/session.php — session name EASYHOME_SID, cookie SameSite=Lax | v10 |
+| 11 | Trang đăng ký + trang khách hàng | register.php + customer/dashboard.php (3 tab: profile, đặt phòng, lịch sử) | v11 |
 
 ---
 
@@ -219,8 +220,8 @@ getAllServices(PDO $pdo): array
 
 ```
 CAO:
-[ ] register.php        — Form đăng ký KH (insert KHACH_HANG)
-[ ] booking.php         — Đặt phòng online từ trang chủ (insert DAT_PHONG + TienCoc logic)
+[x] register.php        — Form đăng ký KH (DONE v11)
+[x] customer/dashboard.php — Profile + đặt phòng + lịch sử (DONE v11)
 [ ] staff/dashboard.php — Sơ đồ phòng màu sắc (grid phòng)
 [ ] staff/checkin.php   — Check-in form
 [ ] staff/checkout.php  — Check-out + tạo HOA_DON
@@ -229,7 +230,6 @@ TRUNG:
 [x] admin/dashboard.php — Sidebar 5 tab: tổng quan, đặt phòng, đặt mới, nhân viên, báo cáo (DONE v8)
 [ ] admin/rooms.php     — CRUD phòng
 [ ] admin/accounts.php  — Quản lý tài khoản nâng cao
-[ ] customer/dashboard.php — Lịch sử đặt phòng
 
 THẤP:
 [ ] rooms.php           — Trang kết quả tìm kiếm
