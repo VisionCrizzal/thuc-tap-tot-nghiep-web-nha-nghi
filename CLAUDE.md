@@ -10,10 +10,40 @@
 **Loại:** Web app (PHP + MySQL + HTML/CSS/JS)  
 **Server:** XAMPP (Apache + MySQL)  
 **URL local:** `http://localhost/khachsan/`  
+**OS:** macOS  
 **Trường:** ĐHKH Huế — Nhóm 22  
 **Thực thể:** Nhà nghỉ theo giờ Easyhome, TP. Huế  
 **Hotline:** 0768.466.686  
 **Google Maps:** 16.4602181, 107.5945346
+
+---
+
+## 🍎 macOS — ĐƯỜNG DẪN & LỆNH
+
+| Mục đích | Đường dẫn |
+|----------|-----------|
+| **Thư mục project** | `/Applications/XAMPP/xamppfiles/htdocs/khachsan/` |
+| **Mở XAMPP Manager** | `/Applications/XAMPP/manager-osx.app` |
+| **phpMyAdmin** | `http://localhost/phpmyadmin` |
+| **Web app** | `http://localhost/khachsan/` |
+| **Error log Apache** | `/Applications/XAMPP/xamppfiles/logs/error_log` |
+| **PHP config** | `/Applications/XAMPP/xamppfiles/etc/php.ini` |
+
+**Terminal — cd nhanh vào project:**
+```bash
+cd /Applications/XAMPP/xamppfiles/htdocs/khachsan
+```
+
+**Bật error trong PHP khi debug** (thêm đầu file .php):
+```php
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+```
+
+**Xem log lỗi Apache:**
+```bash
+tail -f /Applications/XAMPP/xamppfiles/logs/error_log
+```
 
 ---
 
