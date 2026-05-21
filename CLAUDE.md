@@ -192,6 +192,7 @@ getAllServices(PDO $pdo): array
 | 5 | Đổi nút "Nhân Viên/Quản Lý" → "Đăng Nhập/Đăng Ký", xoá hint test | Navbar đổi, hint box xoá | v5 |
 | 6 | Tạo login.php (bị 404), fix CSS warning | login.php 3 tab + fix empty CSS ruleset | v6 |
 | 7 | Room dashboard filter + thu gọn, tạo CLAUDE.md | Dashboard filter tabs + CLAUDE.md | v7 |
+| 8 | Trang admin dashboard đầy đủ chức năng quản lý | admin/dashboard.php — sidebar, 5 tab, CRUD đặt phòng + nhân viên + báo cáo | v8 |
 
 ---
 
@@ -205,6 +206,8 @@ getAllServices(PDO $pdo): array
 | 4 | Đăng nhập thất bại | Hash SQL = "password", user nhập sai | Dùng "password" khi test |
 | 5 | Tiếng Việt lỗi | Charset sai | utf8mb4 trong DB + PDO DSN |
 | 6 | Scroll reveal conflict với filter | obs.observe sau khi filter ẩn card | Filter trước, reveal sau |
+| 7 | Xóa nhân viên lỗi FK constraint | TAI_KHOAN.MaNV FK → NHAN_VIEN, xóa hard sẽ fail nếu có DAT_PHONG | Dùng soft delete: TrangThai='Ngừng hoạt động' thay vì DELETE |
+| 8 | NVARCHAR không tồn tại MySQL | MySQL không hỗ trợ NVARCHAR native (alias VARCHAR với utf8mb4) | Đã dùng utf8mb4 ở database level, hoạt động bình thường |
 
 ---
 
@@ -213,15 +216,15 @@ getAllServices(PDO $pdo): array
 ```
 CAO:
 [ ] register.php        — Form đăng ký KH (insert KHACH_HANG)
-[ ] booking.php         — Đặt phòng (insert DAT_PHONG + TienCoc logic)
+[ ] booking.php         — Đặt phòng online từ trang chủ (insert DAT_PHONG + TienCoc logic)
 [ ] staff/dashboard.php — Sơ đồ phòng màu sắc (grid phòng)
 [ ] staff/checkin.php   — Check-in form
 [ ] staff/checkout.php  — Check-out + tạo HOA_DON
 
 TRUNG:
-[ ] admin/dashboard.php — Thống kê doanh thu (dùng Chart.js hoặc SVG chart)
+[x] admin/dashboard.php — Sidebar 5 tab: tổng quan, đặt phòng, đặt mới, nhân viên, báo cáo (DONE v8)
 [ ] admin/rooms.php     — CRUD phòng
-[ ] admin/accounts.php  — Quản lý tài khoản
+[ ] admin/accounts.php  — Quản lý tài khoản nâng cao
 [ ] customer/dashboard.php — Lịch sử đặt phòng
 
 THẤP:
