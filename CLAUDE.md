@@ -65,7 +65,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │
 ├── staff/
 │   ├── login.php                  ✅ Đăng nhập NV (DONE)
-│   └── dashboard.php              🔲 Sơ đồ phòng lễ tân (TODO)
+│   └── dashboard.php              ✅ Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE)
 │
 ├── admin/
 │   └── dashboard.php              🔲 Thống kê quản lý (TODO)
@@ -196,6 +196,7 @@ getAllServices(PDO $pdo): array
 | 9 | Fix bug đăng nhập admin, xóa 3 tab vai trò | login.php viết lại: 1 form thống nhất, tự nhận diện vai trò từ DB | v9 |
 | 10 | Fix session conflict với phpMyAdmin | Tạo config/session.php — session name EASYHOME_SID, cookie SameSite=Lax | v10 |
 | 11 | Trang đăng ký + trang khách hàng | register.php + customer/dashboard.php (3 tab: profile, đặt phòng, lịch sử) | v11 |
+| 12 | Trang nhân viên | staff/dashboard.php — stats, quản lý đặt phòng (check-in/out/hủy), sơ đồ phòng, thông tin NV | v12 |
 
 ---
 
@@ -222,9 +223,9 @@ getAllServices(PDO $pdo): array
 CAO:
 [x] register.php        — Form đăng ký KH (DONE v11)
 [x] customer/dashboard.php — Profile + đặt phòng + lịch sử (DONE v11)
-[ ] staff/dashboard.php — Sơ đồ phòng màu sắc (grid phòng)
-[ ] staff/checkin.php   — Check-in form
-[ ] staff/checkout.php  — Check-out + tạo HOA_DON
+[x] staff/dashboard.php — Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE v12)
+[ ] staff/checkin.php   — Check-in form nâng cao (tạo HOA_DON)
+[ ] staff/checkout.php  — Check-out + in hóa đơn
 
 TRUNG:
 [x] admin/dashboard.php — Sidebar 5 tab: tổng quan, đặt phòng, đặt mới, nhân viên, báo cáo (DONE v8)
