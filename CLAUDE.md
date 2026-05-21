@@ -197,6 +197,7 @@ getAllServices(PDO $pdo): array
 | 10 | Fix session conflict với phpMyAdmin | Tạo config/session.php — session name EASYHOME_SID, cookie SameSite=Lax | v10 |
 | 11 | Trang đăng ký + trang khách hàng | register.php + customer/dashboard.php (3 tab: profile, đặt phòng, lịch sử) | v11 |
 | 12 | Trang nhân viên | staff/dashboard.php — stats, quản lý đặt phòng (check-in/out/hủy), sơ đồ phòng, thông tin NV | v12 |
+| 13 | Quản lý phòng cho admin | admin/rooms.php — CRUD phòng, đổi trạng thái nhanh, sơ đồ phòng theo tầng, filter theo loại/trạng thái | v13 |
 
 ---
 
@@ -229,7 +230,7 @@ CAO:
 
 TRUNG:
 [x] admin/dashboard.php — Sidebar 5 tab: tổng quan, đặt phòng, đặt mới, nhân viên, báo cáo (DONE v8)
-[ ] admin/rooms.php     — CRUD phòng
+[x] admin/rooms.php     — CRUD phòng, đổi trạng thái, sơ đồ theo tầng (DONE v13)
 [ ] admin/accounts.php  — Quản lý tài khoản nâng cao
 
 THẤP:

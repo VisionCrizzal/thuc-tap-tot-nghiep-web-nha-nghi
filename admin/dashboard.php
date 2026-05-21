@@ -565,6 +565,10 @@ select.form-ctrl{cursor:pointer}
       <?php endif; ?>
     </a>
     <?php endforeach; ?>
+    <a href="rooms.php" class="sb-nav-item">
+      <span class="sb-nav-icon">🛏️</span>
+      <span>Quản Lý Phòng</span>
+    </a>
   </nav>
 
   <div class="sb-footer">
