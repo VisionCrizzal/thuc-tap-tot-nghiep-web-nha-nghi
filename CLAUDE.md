@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 21/05/2026
+> Cập nhật lần cuối: 24/05/2026
 
 ---
 
@@ -199,6 +199,7 @@ getAllServices(PDO $pdo): array
 | 12 | Trang nhân viên | staff/dashboard.php — stats, quản lý đặt phòng (check-in/out/hủy), sơ đồ phòng, thông tin NV | v12 |
 | 13 | Quản lý phòng cho admin | admin/rooms.php — CRUD phòng, đổi trạng thái nhanh, sơ đồ phòng theo tầng, filter theo loại/trạng thái | v13 |
 | 14 | Trang kết quả tìm kiếm | rooms.php — search form, filter loại phòng, room cards với SVG giường, pre-fill booking form | v14 |
+| 15 | Check-in, Check-out, thanh toán đa phương thức, in hóa đơn PDF, khuyến mãi | staff/checkin.php + staff/checkout.php (cash/card/QR/Apple Pay/Google Pay/Samsung Pay, in PDF) + promo trong customer/dashboard.php + sửa staff/dashboard.php | v15 |
 
 ---
 
@@ -226,8 +227,8 @@ CAO:
 [x] register.php        — Form đăng ký KH (DONE v11)
 [x] customer/dashboard.php — Profile + đặt phòng + lịch sử (DONE v11)
 [x] staff/dashboard.php — Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE v12)
-[ ] staff/checkin.php   — Check-in form nâng cao (tạo HOA_DON)
-[ ] staff/checkout.php  — Check-out + in hóa đơn
+[x] staff/checkin.php   — Check-in form: thêm DV, KM, thu cọc đa phương thức (DONE v15)
+[x] staff/checkout.php  — Check-out + in hóa đơn PDF (DONE v15)
 
 TRUNG:
 [x] admin/dashboard.php — Sidebar 5 tab: tổng quan, đặt phòng, đặt mới, nhân viên, báo cáo (DONE v8)
@@ -236,8 +237,8 @@ TRUNG:
 
 THẤP:
 [x] rooms.php           — Trang tìm kiếm & kết quả phòng trống (DONE v14)
-[ ] Khuyến mãi trong booking
-[ ] In hóa đơn PDF
+[x] Khuyến mãi trong booking — auto-detect + mã thủ công (DONE v15)
+[x] In hóa đơn PDF — window.print() + @media print CSS trong checkout.php (DONE v15)
 ```
 
 ---

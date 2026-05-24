@@ -25,6 +25,13 @@ $kh = $kh->fetch();
 // ── Lấy danh sách dịch vụ ──────────────────────────────────────────────────
 $services = $pdo->query("SELECT * FROM DICH_VU WHERE TrangThai='Khả dụng' ORDER BY GiaDV")->fetchAll();
 
+// ── Khuyến mãi đang hoạt động ──────────────────────────────────────────────
+$promos = $pdo->query("
+    SELECT * FROM KHUYEN_MAI
+    WHERE TrangThai='Đang áp dụng' AND NgayBatDau<=CURDATE() AND NgayKetThuc>=CURDATE()
+    ORDER BY GiaTriKM DESC
+")->fetchAll();
+
 // ── Giá phòng theo loại ─────────────────────────────────────────────────────
 $roomPrices = [
     'Đơn'      => ['min'=>500000, 'max'=>550000,  'beds'=>'1 giường đơn',  'icon'=>'🛏️',  'color'=>'#3b82f6'],
@@ -88,7 +95,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dat_p
                 foreach ($dvList as $d) $tienDV += $d['GiaDV'];
             }
 
-            $tongGia = $tienPhong + $tienDV;
+            // Áp dụng khuyến mãi
+            $maKM    = trim($_POST['ma_km'] ?? '');
+            $giamGia = 0; $kmNote = '';
+            if ($maKM) {
+                $kmQ = $pdo->prepare("
+                    SELECT * FROM KHUYEN_MAI
+                    WHERE MaKM=:km AND TrangThai='Đang áp dụng'
+                      AND NgayBatDau<=CURDATE() AND NgayKetThuc>=CURDATE()
+                ");
+                $kmQ->execute([':km' => $maKM]);
+                $kmRec = $kmQ->fetch();
+                if ($kmRec) {
+                    $giamGia = $kmRec['LoaiKM']==='PhanTram'
+                        ? round(($tienPhong + $tienDV) * $kmRec['GiaTriKM'] / 100)
+                        : min($kmRec['GiaTriKM'], $tienPhong + $tienDV);
+                    $kmNote = " [GIAM:{$giamGia}][KM:{$kmRec['MaKM']} {$kmRec['TenKM']}]";
+                }
+            }
+            $tongGia = max(0, $tienPhong + $tienDV - $giamGia);
             $tienCoc = round($tongGia * 0.3);
 
             // Sinh MaDP
@@ -98,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dat_p
 
             // Insert DAT_PHONG
             $pdo->prepare("INSERT INTO DAT_PHONG (MaDP,MaKH,MaPhong,NgayCheckIn,NgayCheckOut,SoLuongKhach,TienCoc,TongGia,GhiChu) VALUES (:dp,:kh,:ph,:in,:out,:sk,:coc,:tong,:ghi)")
-                ->execute([':dp'=>$maDP,':kh'=>$khId,':ph'=>$room['MaPhong'],':in'=>$checkin,':out'=>$checkout,':sk'=>$soKhach,':coc'=>$tienCoc,':tong'=>$tongGia,':ghi'=>$ghiChu]);
+                ->execute([':dp'=>$maDP,':kh'=>$khId,':ph'=>$room['MaPhong'],':in'=>$checkin,':out'=>$checkout,':sk'=>$soKhach,':coc'=>$tienCoc,':tong'=>$tongGia,':ghi'=>$ghiChu.$kmNote]);
 
             // Insert DAT_DICH_VU
             foreach ($dvList as $d) {
@@ -335,6 +360,29 @@ body{background:var(--bg)}
   .info-grid{grid-template-columns:1fr}
   .booking-body{grid-template-columns:1fr 1fr}
 }
+
+/* ── KHUYẾN MÃI ── */
+.promo-section-title{font-size:.66rem;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+.promo-kh{display:flex;align-items:center;justify-content:space-between;
+  padding:11px 15px;border:1.5px solid var(--border);border-radius:10px;
+  background:#fff;cursor:pointer;transition:all .22s;margin-bottom:8px}
+.promo-kh:hover{border-color:var(--blue-light);background:var(--blue-pale);transform:translateY(-1px)}
+.promo-kh.applied{border-color:#22c55e;background:#f0fdf4}
+.promo-kh.auto-eligible{border-left:3px solid var(--blue-light)}
+.promo-kh-left{flex:1}
+.promo-kh-code{font-size:.77rem;font-weight:700;color:var(--blue-dark);margin-bottom:2px}
+.promo-kh-name{font-size:.8rem;color:var(--text)}
+.promo-kh-cond{font-size:.71rem;color:var(--muted);margin-top:1px}
+.promo-kh-badge{font-size:.73rem;font-weight:700;padding:3px 11px;border-radius:10px;
+  background:var(--blue-mid);color:var(--blue-dark);white-space:nowrap;flex-shrink:0;margin-left:10px}
+.promo-kh-badge.on{background:#dcfce7;color:#166534}
+.promo-code-row{display:flex;gap:8px;margin-top:14px}
+.btn-apply-km{padding:10px 16px;background:var(--blue);color:#fff;border:none;
+  border-radius:8px;font-size:.77rem;font-weight:700;cursor:pointer;
+  white-space:nowrap;font-family:var(--font);transition:all .2s}
+.btn-apply-km:hover{background:var(--blue-dark)}
+.price-row.discount-row{color:#fcd34d}
 </style>
 </head>
 <body>
@@ -434,6 +482,7 @@ body{background:var(--bg)}
 
     <form method="POST" id="bookingForm">
       <input type="hidden" name="action" value="dat_phong">
+      <input type="hidden" name="ma_km" id="hidKMKh" value="">
 
       <!-- Thời gian -->
       <div class="card">
@@ -536,6 +585,37 @@ body{background:var(--bg)}
         </div>
       </div>
 
+      <!-- Khuyến mãi -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-head-icon">🎁</span>
+          <span class="card-head-title">Khuyến Mãi</span>
+        </div>
+        <div class="card-body">
+          <!-- Promos auto-detect -->
+          <div id="autoPromoSection">
+            <div class="promo-section-title">Khuyến mãi có thể áp dụng</div>
+            <div id="autoPromoList">
+              <div style="font-size:.8rem;color:var(--muted);padding:6px 0">
+                Chọn ngày để xem khuyến mãi tự động...
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual code -->
+          <div class="promo-section-title" style="margin-top:14px">Nhập mã khuyến mãi</div>
+          <div class="promo-code-row">
+            <input type="text" id="promoCodeKh" class="form-input" placeholder="VD: KM001, KM003..."
+                   style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+            <button type="button" class="btn-apply-km"
+                    onclick="applyPromoKh(document.getElementById('promoCodeKh').value)">
+              Áp dụng
+            </button>
+          </div>
+          <div id="promoMsgKh" style="font-size:.79rem;margin-top:8px;display:none"></div>
+        </div>
+      </div>
+
       <!-- Tổng tiền & Ghi chú -->
       <div class="card">
         <div class="card-head">
@@ -551,6 +631,10 @@ body{background:var(--bg)}
             <div class="price-row">
               <span class="price-label">Dịch vụ thêm</span>
               <span class="price-val" id="priceSvc">0đ</span>
+            </div>
+            <div class="price-row discount-row" id="priceDiscountRow" style="display:none">
+              <span class="price-label">🎁 Giảm giá <span id="priceDiscName" style="font-size:.75rem;opacity:.85"></span></span>
+              <span class="price-val" id="priceDiscount">0đ</span>
             </div>
             <div class="price-row">
               <span class="price-label">Tổng cộng</span>
@@ -648,6 +732,90 @@ function switchTab(name) {
   document.querySelectorAll('.tab-btn')[['profile','booking','history'].indexOf(name)].classList.add('active');
 }
 
+// ── Khuyến mãi ───────────────────────────────────────────────────────────────
+const availablePromos = <?= json_encode($promos) ?>;
+let appliedKMKh = '';
+let discountAmtKh = 0;
+
+function getCurrentNightsKh() {
+  const ci = document.getElementById('ciDate').value;
+  const co = document.getElementById('coDate').value;
+  const cit = document.getElementById('ciTime').value || '14:00';
+  const cot = document.getElementById('coTime').value || '12:00';
+  if (!ci || !co) return 1;
+  const diff = new Date(co+'T'+cot) - new Date(ci+'T'+cit);
+  return Math.max(1, Math.ceil(diff / 86400000));
+}
+
+function detectApplicablePromos() {
+  const ci      = document.getElementById('ciDate').value;
+  const nights  = getCurrentNightsKh();
+  const today   = new Date();
+  const ciDate  = ci ? new Date(ci + 'T14:00') : null;
+  const daysAhead = ciDate ? Math.max(0, Math.ceil((ciDate - today) / 86400000)) : 0;
+
+  const list = document.getElementById('autoPromoList');
+  if (!list) return;
+
+  // Filter eligible promos (only individual-booking promos, not group)
+  const eligible = availablePromos.filter(pm => {
+    if (pm.MaKM === 'KM001') return daysAhead >= 7 && daysAhead < 60;
+    if (pm.MaKM === 'KM002') return daysAhead >= 60;
+    if (pm.MaKM === 'KM003') return nights >= 3 && nights < 5;
+    if (pm.MaKM === 'KM004') return nights >= 5;
+    // Skip group promos (KM005, KM006) for single-room booking
+    return false;
+  });
+
+  if (eligible.length === 0) {
+    list.innerHTML = '<div style="font-size:.79rem;color:var(--muted);padding:4px 0">Không có khuyến mãi tự động. Nhập mã thủ công nếu có.</div>';
+    return;
+  }
+
+  list.innerHTML = eligible.map(pm => {
+    const isApplied = appliedKMKh === pm.MaKM;
+    const badgeTxt  = pm.LoaiKM === 'PhanTram'
+      ? '-' + pm.GiaTriKM + '%'
+      : '-' + pm.GiaTriKM.toLocaleString('vi-VN') + 'đ';
+    return `<div class="promo-kh auto-eligible ${isApplied?'applied':''}" onclick="applyPromoKh('${pm.MaKM}')">
+      <div class="promo-kh-left">
+        <div class="promo-kh-code">${pm.MaKM} — ${pm.TenKM}</div>
+        <div class="promo-kh-cond">${pm.DieuKien || ''}</div>
+      </div>
+      <div class="promo-kh-badge ${isApplied?'on':''}">${badgeTxt}${isApplied?' ✓':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function applyPromoKh(code) {
+  code = (code || '').toUpperCase().trim();
+  document.getElementById('promoCodeKh').value = code;
+  const msg = document.getElementById('promoMsgKh');
+  msg.style.display = 'block';
+
+  if (!code) {
+    appliedKMKh = ''; discountAmtKh = 0;
+    document.getElementById('hidKMKh').value = '';
+    msg.style.display = 'none';
+    updatePrice(); detectApplicablePromos(); return;
+  }
+
+  const pm = availablePromos.find(p => p.MaKM === code);
+  if (pm) {
+    appliedKMKh = code;
+    document.getElementById('hidKMKh').value = code;
+    msg.style.color = '#166534';
+    msg.textContent = '✓ Đã áp dụng: ' + pm.TenKM;
+    updatePrice(); detectApplicablePromos();
+  } else {
+    appliedKMKh = ''; discountAmtKh = 0;
+    document.getElementById('hidKMKh').value = '';
+    msg.style.color = '#dc2626';
+    msg.textContent = '✕ Mã không hợp lệ hoặc đã hết hạn';
+    updatePrice(); detectApplicablePromos();
+  }
+}
+
 // ── Chọn loại phòng ─────────────────────────────────────────────────────────
 const roomPrices = <?= json_encode(array_map(fn($v)=>['min'=>$v['min'],'max'=>$v['max']], $roomPrices)) ?>;
 let selectedRoomType = '<?= htmlspecialchars($_POST['loai_phong'] ?? $prefillType ?: 'Đôi') ?>';
@@ -697,6 +865,7 @@ function calcDuration() {
     ? `⏱ ${hours} tiếng lưu trú`
     : `⏱ ${days} ngày lưu trú (${hours} tiếng)`;
   updatePrice();
+  detectApplicablePromos();
 }
 
 // ── Cập nhật bảng giá ───────────────────────────────────────────────────────
@@ -721,10 +890,37 @@ function updatePrice() {
     svcTotal += parseFloat(cb.dataset.price || 0);
   });
 
-  const totalMin = roomMin + svcTotal;
-  const totalMax = roomMax + svcTotal;
+  const baseMin = roomMin + svcTotal;
+  const baseMax = roomMax + svcTotal;
+
+  // Tính giảm giá
+  discountAmtKh = 0;
+  let discName = '';
+  if (appliedKMKh) {
+    const pm = availablePromos.find(p => p.MaKM === appliedKMKh);
+    if (pm) {
+      discountAmtKh = pm.LoaiKM === 'PhanTram'
+        ? Math.round(baseMin * pm.GiaTriKM / 100)
+        : Math.min(pm.GiaTriKM, baseMin);
+      discName = pm.TenKM;
+    }
+  }
+
+  const totalMin = Math.max(0, baseMin - discountAmtKh);
+  const totalMax = Math.max(0, baseMax - discountAmtKh);
   const fmt = n => n.toLocaleString('vi-VN') + 'đ';
   const fmtRange = (mn, mx) => mn === mx ? fmt(mn) : fmt(mn) + ' – ' + fmt(mx);
+
+  // Hiển thị dòng giảm giá
+  const discRow = document.getElementById('priceDiscountRow');
+  if (discRow) {
+    if (discountAmtKh > 0) {
+      discRow.style.display = '';
+      document.getElementById('priceDiscount').textContent = '-' + fmt(discountAmtKh);
+      const nameEl = document.getElementById('priceDiscName');
+      if (nameEl) nameEl.textContent = '(' + discName + ')';
+    } else discRow.style.display = 'none';
+  }
 
   document.getElementById('priceRoom').textContent = fmtRange(roomMin, roomMax);
   document.getElementById('priceSvc').textContent  = fmt(svcTotal);
@@ -735,6 +931,7 @@ function updatePrice() {
 // Khởi tạo
 calcDuration();
 updatePrice();
+detectApplicablePromos();
 </script>
 </body>
 </html>

@@ -12,6 +12,10 @@ $staffMaNV = $_SESSION['staff_maNV'];
 $tab       = $_GET['tab'] ?? 'bookings';
 $msg       = ''; $msgType = 'success';
 
+// Thông báo từ checkin.php / checkout.php redirect
+if (isset($_GET['checkin_ok'])) { $msg = "✅ Check-in thành công! Hóa đơn đã được tạo."; }
+
+
 // ── Thông tin nhân viên ─────────────────────────────────────────────────────
 $nvRow = $pdo->prepare("
     SELECT nv.*, tk.VaiTro, tk.LanDangNhapCuoi
@@ -462,22 +466,26 @@ body{background:var(--bg);min-height:100vh}
             <td>
               <div class="actions">
                 <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
-                <form method="POST">
-                  <input type="hidden" name="action" value="xac_nhan">
-                  <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
-                  <button type="submit" class="btn-action btn-confirm">✓ Check-in</button>
-                </form>
+                <a href="checkin.php?dp=<?= urlencode($bk['MaDP']) ?>"
+                   class="btn-action btn-confirm" style="text-decoration:none;display:block;text-align:center">
+                  ✓ Check-in
+                </a>
                 <form method="POST" onsubmit="return confirm('Hủy đặt phòng <?= $bk['MaDP'] ?>?')">
                   <input type="hidden" name="action" value="huy">
                   <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
                   <button type="submit" class="btn-action btn-cancel">✕ Hủy</button>
                 </form>
                 <?php elseif ($bk['TrangThai'] === 'Đã nhận phòng'): ?>
-                <form method="POST" onsubmit="return confirm('Xác nhận check-out cho đặt phòng <?= $bk['MaDP'] ?>?')">
-                  <input type="hidden" name="action" value="checkout">
-                  <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
-                  <button type="submit" class="btn-action btn-checkout">⬆ Check-out</button>
-                </form>
+                <a href="checkout.php?dp=<?= urlencode($bk['MaDP']) ?>"
+                   class="btn-action btn-checkout" style="text-decoration:none;display:block;text-align:center">
+                  ⬆ Check-out
+                </a>
+                <?php elseif ($bk['TrangThai'] === 'Đã trả phòng'): ?>
+                <a href="checkout.php?dp=<?= urlencode($bk['MaDP']) ?>&done=1"
+                   class="btn-action" style="text-decoration:none;display:block;text-align:center;
+                   background:#f0fdf4;border:1.5px solid #86efac;color:#166534">
+                  🧾 Hóa đơn
+                </a>
                 <?php else: ?>
                 <span style="font-size:.73rem;color:#94a3b8">—</span>
                 <?php endif; ?>
