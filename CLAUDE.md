@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 24/05/2026
+> Cập nhật lần cuối: 24/05/2026 (thêm TODO đầy đủ)
 
 ---
 
@@ -54,9 +54,14 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 ├── index.php                      ✅ Trang chủ (DONE)
 ├── login.php                      ✅ Đăng nhập chung — 1 form tự nhận diện vai trò (DONE)
 ├── register.php                   ✅ Đăng ký khách hàng (DONE)
+├── rooms.php                      ✅ Trang tìm kiếm & kết quả phòng trống (DONE)
+├── logout.php                     🔲 Dedicated logout — session_destroy() + redirect (TODO)
+├── forgot-password.php            🔲 Quên mật khẩu (TODO)
+├── 404.php                        🔲 Custom error page (TODO)
 │
 ├── config/
-│   └── db.php                     ✅ PDO connection + helpers (DONE)
+│   ├── db.php                     ✅ PDO connection + helpers (DONE)
+│   └── session.php                ✅ Session name EASYHOME_SID, SameSite=Lax (DONE)
 │
 ├── assets/images/
 │   ├── logo.jpg                   Logo Easyhome script font, nền đen
@@ -65,13 +70,25 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │
 ├── staff/
 │   ├── login.php                  ✅ Đăng nhập NV (DONE)
-│   └── dashboard.php              ✅ Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE)
+│   ├── dashboard.php              ✅ Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE)
+│   ├── checkin.php                ✅ Check-in form: DV, KM, thu cọc đa phương thức (DONE)
+│   ├── checkout.php               ✅ Check-out + in hóa đơn PDF (DONE)
+│   └── profile.php                🔲 NV đổi mật khẩu + cập nhật thông tin (TODO)
 │
 ├── admin/
-│   └── dashboard.php              🔲 Thống kê quản lý (TODO)
+│   ├── dashboard.php              ✅ Tổng quan + quản lý đặt phòng + nhân viên (DONE)
+│   ├── rooms.php                  ✅ CRUD phòng, sơ đồ theo tầng (DONE)
+│   ├── accounts.php               🔲 Quản lý tài khoản nâng cao (TODO)
+│   ├── services.php               🔲 CRUD dịch vụ — bảng DICH_VU (TODO)
+│   ├── promotions.php             🔲 CRUD khuyến mãi — bảng KHUYEN_MAI (TODO)
+│   ├── invoices.php               🔲 Danh sách hóa đơn toàn hệ thống (TODO)
+│   ├── reports.php                🔲 Báo cáo doanh thu chi tiết + xuất CSV (TODO)
+│   ├── housekeeping.php           🔲 Phân công & theo dõi dọn phòng (TODO)
+│   └── calendar.php               🔲 Lịch đặt phòng dạng calendar (TODO)
 │
 ├── customer/
-│   └── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử (DONE)
+│   ├── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử + KM (DONE)
+│   └── booking-detail.php         🔲 Chi tiết đặt phòng: DV, hóa đơn, trạng thái cọc (TODO)
 │
 ├── hotel_db.sql                   ✅ Schema đầy đủ + data mẫu
 ├── HUONG_DAN.md                   Cài đặt XAMPP
@@ -223,22 +240,70 @@ getAllServices(PDO $pdo): array
 ## 🔲 TODO (ưu tiên cao → thấp)
 
 ```
-CAO:
-[x] register.php        — Form đăng ký KH (DONE v11)
+─────────────────────────── ĐÃ HOÀN THÀNH ───────────────────────────
+[x] register.php           — Form đăng ký KH (DONE v11)
 [x] customer/dashboard.php — Profile + đặt phòng + lịch sử (DONE v11)
-[x] staff/dashboard.php — Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE v12)
-[x] staff/checkin.php   — Check-in form: thêm DV, KM, thu cọc đa phương thức (DONE v15)
-[x] staff/checkout.php  — Check-out + in hóa đơn PDF (DONE v15)
-
-TRUNG:
-[x] admin/dashboard.php — Sidebar 5 tab: tổng quan, đặt phòng, đặt mới, nhân viên, báo cáo (DONE v8)
-[x] admin/rooms.php     — CRUD phòng, đổi trạng thái, sơ đồ theo tầng (DONE v13)
-[ ] admin/accounts.php  — Quản lý tài khoản nâng cao
-
-THẤP:
-[x] rooms.php           — Trang tìm kiếm & kết quả phòng trống (DONE v14)
+[x] staff/dashboard.php    — Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE v12)
+[x] admin/dashboard.php    — Tổng quan, quản lý đặt phòng, nhân viên (DONE v8)
+[x] admin/rooms.php        — CRUD phòng, đổi trạng thái, sơ đồ theo tầng (DONE v13)
+[x] rooms.php              — Trang tìm kiếm & kết quả phòng trống (DONE v14)
+[x] staff/checkin.php      — Check-in: DV, KM, thu cọc đa phương thức (DONE v15)
+[x] staff/checkout.php     — Check-out + in hóa đơn PDF (DONE v15)
 [x] Khuyến mãi trong booking — auto-detect + mã thủ công (DONE v15)
-[x] In hóa đơn PDF — window.print() + @media print CSS trong checkout.php (DONE v15)
+[x] In hóa đơn PDF         — window.print() + @media print CSS (DONE v15)
+
+──────────────────────── CẦN LÀM — ƯU TIÊN CAO ────────────────────────
+[ ] logout.php             — Dedicated logout: session_destroy() + redirect
+                             ⚠️ BUG bảo mật: admin/dashboard.php & admin/rooms.php
+                             hiện redirect thẳng login.php mà KHÔNG destroy session!
+
+[ ] admin/accounts.php     — Quản lý tài khoản: CRUD TAI_KHOAN (reset mật khẩu NV,
+                             khóa/mở tài khoản KH, tạo tài khoản NV mới)
+
+[ ] admin/services.php     — CRUD dịch vụ (bảng DICH_VU): thêm/sửa/xóa dịch vụ,
+                             đổi trạng thái Khả dụng/Ngừng, cập nhật giá & ảnh
+
+[ ] admin/promotions.php   — CRUD khuyến mãi (bảng KHUYEN_MAI): thêm/sửa/xóa,
+                             kích hoạt/vô hiệu hóa, xem thống kê lượt dùng
+
+──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
+[ ] admin/invoices.php     — Danh sách toàn bộ hóa đơn (HOA_DON): lọc theo tháng/
+                             trạng thái/nhân viên, tìm kiếm, xem lại từng hóa đơn,
+                             tổng hợp tiền đã thu/chưa thu
+
+[ ] admin/reports.php      — Báo cáo doanh thu: theo tháng/quý/năm, biểu đồ
+                             Chart.js (line chart doanh thu, bar chart công suất),
+                             top phòng/dịch vụ/NV, xuất báo cáo CSV
+
+[ ] Tích điểm KH (TichDiem) — Cộng điểm sau mỗi checkout thành công
+                             (1.000đ = 1 điểm), trừ điểm khi đổi ưu đãi,
+                             hiển thị điểm tích lũy trong customer/dashboard.php
+                             ⚠️ KHACH_HANG.TichDiem hiện = 0 mãi mãi, chưa cập nhật!
+
+[ ] customer/booking-detail.php — KH xem chi tiết từng đặt phòng: danh sách dịch
+                             vụ đã gọi, hóa đơn đầy đủ, trạng thái thanh toán cọc,
+                             nút in/tải PDF hóa đơn
+
+──────────────────────── CẦN LÀM — ƯU TIÊN THẤP ───────────────────────
+[ ] staff/profile.php      — NV xem/đổi mật khẩu, cập nhật SĐT & email cá nhân
+                             (tách riêng khỏi tab profile trong staff/dashboard.php)
+
+[ ] forgot-password.php    — Flow quên mật khẩu: nhập email → tạo token → gửi link
+                             reset qua email (cần PHPMailer hoặc PHP mail())
+
+[ ] admin/housekeeping.php — Phân công dọn phòng: danh sách phòng "Đang dọn",
+                             assign NV, NV cập nhật hoàn thành → TinhTrang → "Trống"
+
+[ ] admin/calendar.php     — Lịch đặt phòng dạng calendar tháng/tuần: xem phòng
+                             nào trống theo ngày, kéo thả đặt phòng mới (FullCalendar.js)
+
+[ ] 404.php / error.php    — Custom error pages đồng bộ brand Easyhome
+
+[ ] Email xác nhận         — PHPMailer: gửi email xác nhận ngay khi KH đặt phòng
+                             thành công + email nhắc nhở check-in 1 ngày trước
+
+[ ] Export CSV/Excel       — Xuất danh sách đặt phòng, doanh thu từ admin
+                             (PHP fputcsv cho CSV, PhpSpreadsheet cho Excel .xlsx)
 ```
 
 ---
