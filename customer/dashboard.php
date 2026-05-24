@@ -12,6 +12,11 @@ $tab    = $_GET['tab'] ?? 'profile';
 $msg    = '';
 $msgType = 'success';
 
+// Pre-fill từ rooms.php (GET params khi click "Đặt Ngay")
+$prefillType    = trim($_GET['room_type'] ?? '');
+$prefillCheckin = trim($_GET['checkin']   ?? '');
+$prefillCheckout= trim($_GET['checkout']  ?? '');
+
 // ── Lấy thông tin khách hàng ────────────────────────────────────────────────
 $kh = $pdo->prepare("SELECT * FROM KHACH_HANG WHERE MaKH = :id");
 $kh->execute([':id' => $khId]);
@@ -441,7 +446,7 @@ body{background:var(--bg)}
             <div class="form-group" style="margin-bottom:0">
               <label class="form-label">Ngày Check-in</label>
               <input type="date" name="checkin_date" id="ciDate" class="form-input"
-                     value="<?= htmlspecialchars($_POST['checkin_date'] ?? date('Y-m-d')) ?>"
+                     value="<?= htmlspecialchars($_POST['checkin_date'] ?? $prefillCheckin ?: date('Y-m-d')) ?>"
                      min="<?= date('Y-m-d') ?>" onchange="calcDuration()">
             </div>
             <div class="form-group" style="margin-bottom:0">
@@ -456,7 +461,7 @@ body{background:var(--bg)}
             <div class="form-group" style="margin-bottom:0">
               <label class="form-label">Ngày Check-out</label>
               <input type="date" name="checkout_date" id="coDate" class="form-input"
-                     value="<?= htmlspecialchars($_POST['checkout_date'] ?? date('Y-m-d', strtotime('+1 day'))) ?>"
+                     value="<?= htmlspecialchars($_POST['checkout_date'] ?? $prefillCheckout ?: date('Y-m-d', strtotime('+1 day'))) ?>"
                      min="<?= date('Y-m-d', strtotime('+1 day')) ?>" onchange="calcDuration()">
             </div>
             <div class="form-group" style="margin-bottom:0">
@@ -485,7 +490,7 @@ body{background:var(--bg)}
         <div class="card-body">
           <div class="room-cards">
             <?php foreach ($roomPrices as $type => $info): ?>
-            <?php $selected = ($_POST['loai_phong'] ?? 'Đôi') === $type; ?>
+            <?php $selected = ($_POST['loai_phong'] ?? $prefillType ?: 'Đôi') === $type; ?>
             <label class="room-card <?= $selected?'selected':'' ?>" onclick="selectRoom(this, '<?= $type ?>')">
               <input type="radio" name="loai_phong" value="<?= $type ?>" <?= $selected?'checked':'' ?>>
               <div class="room-icon"><?= $info['icon'] ?></div>
@@ -645,7 +650,7 @@ function switchTab(name) {
 
 // ── Chọn loại phòng ─────────────────────────────────────────────────────────
 const roomPrices = <?= json_encode(array_map(fn($v)=>['min'=>$v['min'],'max'=>$v['max']], $roomPrices)) ?>;
-let selectedRoomType = '<?= htmlspecialchars($_POST['loai_phong'] ?? 'Đôi') ?>';
+let selectedRoomType = '<?= htmlspecialchars($_POST['loai_phong'] ?? $prefillType ?: 'Đôi') ?>';
 
 function selectRoom(card, type) {
   document.querySelectorAll('.room-card').forEach(c => c.classList.remove('selected'));

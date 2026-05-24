@@ -198,6 +198,7 @@ getAllServices(PDO $pdo): array
 | 11 | Trang đăng ký + trang khách hàng | register.php + customer/dashboard.php (3 tab: profile, đặt phòng, lịch sử) | v11 |
 | 12 | Trang nhân viên | staff/dashboard.php — stats, quản lý đặt phòng (check-in/out/hủy), sơ đồ phòng, thông tin NV | v12 |
 | 13 | Quản lý phòng cho admin | admin/rooms.php — CRUD phòng, đổi trạng thái nhanh, sơ đồ phòng theo tầng, filter theo loại/trạng thái | v13 |
+| 14 | Trang kết quả tìm kiếm | rooms.php — search form, filter loại phòng, room cards với SVG giường, pre-fill booking form | v14 |
 
 ---
 
@@ -234,7 +235,7 @@ TRUNG:
 [ ] admin/accounts.php  — Quản lý tài khoản nâng cao
 
 THẤP:
-[ ] rooms.php           — Trang kết quả tìm kiếm
+[x] rooms.php           — Trang tìm kiếm & kết quả phòng trống (DONE v14)
 [ ] Khuyến mãi trong booking
 [ ] In hóa đơn PDF
 ```
