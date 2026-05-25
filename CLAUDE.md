@@ -79,7 +79,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   ├── dashboard.php              ✅ Tổng quan + quản lý đặt phòng + nhân viên (DONE)
 │   ├── rooms.php                  ✅ CRUD phòng, sơ đồ theo tầng (DONE)
 │   ├── accounts.php               🔲 Quản lý tài khoản nâng cao (TODO)
-│   ├── services.php               🔲 CRUD dịch vụ — bảng DICH_VU (TODO)
+│   ├── services.php               ✅ CRUD dịch vụ — bảng DICH_VU (DONE)
 │   ├── promotions.php             🔲 CRUD khuyến mãi — bảng KHUYEN_MAI (TODO)
 │   ├── invoices.php               🔲 Danh sách hóa đơn toàn hệ thống (TODO)
 │   ├── reports.php                🔲 Báo cáo doanh thu chi tiết + xuất CSV (TODO)
@@ -217,6 +217,7 @@ getAllServices(PDO $pdo): array
 | 13 | Quản lý phòng cho admin | admin/rooms.php — CRUD phòng, đổi trạng thái nhanh, sơ đồ phòng theo tầng, filter theo loại/trạng thái | v13 |
 | 14 | Trang kết quả tìm kiếm | rooms.php — search form, filter loại phòng, room cards với SVG giường, pre-fill booking form | v14 |
 | 15 | Check-in, Check-out, thanh toán đa phương thức, in hóa đơn PDF, khuyến mãi | staff/checkin.php + staff/checkout.php (cash/card/QR/Apple Pay/Google Pay/Samsung Pay, in PDF) + promo trong customer/dashboard.php + sửa staff/dashboard.php | v15 |
+| 16 | Quản lý dịch vụ admin | admin/services.php — CRUD DICH_VU, toggle trạng thái, emoji picker, preview ảnh, stat cards lượt dùng & doanh thu DV | v16 |
 
 ---
 
@@ -260,8 +261,9 @@ getAllServices(PDO $pdo): array
 [ ] admin/accounts.php     — Quản lý tài khoản: CRUD TAI_KHOAN (reset mật khẩu NV,
                              khóa/mở tài khoản KH, tạo tài khoản NV mới)
 
-[ ] admin/services.php     — CRUD dịch vụ (bảng DICH_VU): thêm/sửa/xóa dịch vụ,
-                             đổi trạng thái Khả dụng/Ngừng, cập nhật giá & ảnh
+[x] admin/services.php     — CRUD dịch vụ (bảng DICH_VU): thêm/sửa/xóa,
+                             đổi trạng thái Khả dụng/Ngừng, emoji picker, preview ảnh,
+                             thống kê lượt dùng & doanh thu DV (DONE v16)
 
 [ ] admin/promotions.php   — CRUD khuyến mãi (bảng KHUYEN_MAI): thêm/sửa/xóa,
                              kích hoạt/vô hiệu hóa, xem thống kê lượt dùng
