@@ -300,18 +300,19 @@ getAllServices(PDO $pdo): array
     — Dòng 31: session_destroy()+header('../login.php') → header('../logout.php')+exit
     — Scan toàn project: không còn file nào dùng session_destroy() inline
 
-[ ] Fix staff/login.php — file v1 orphaned (BUG #14)
-    — Thay toàn bộ nội dung bằng: <?php header('Location: ../login.php'); exit; ?>
-    — Lý do: dùng raw session_start() (sai session name), lộ test creds trong HTML, thừa </div>
-    — File không được link từ đâu nhưng vẫn có thể truy cập trực tiếp qua URL
+[x] Fix staff/login.php — file v1 orphaned (BUG #14) — DONE
+    — Thay toàn bộ 381 dòng bằng 5 dòng: header('Location: ../login.php'); exit;
+    — Loại bỏ: raw session_start(), test creds lộ HTML, extra </div>
+    — Truy cập /staff/login.php → redirect về login.php trung tâm
 
-[ ] Fix sidebar "Báo Cáo" stale link trong 5 admin pages (BUG #15)
-    — Đổi dashboard.php?tab=report → reports.php trong:
-      housekeeping.php:299, calendar.php:318, promotions.php:460, rooms.php:421, services.php:431
+[x] Fix sidebar "Báo Cáo" stale link trong 5 admin pages (BUG #15) — DONE
+    — Xóa dòng thừa dashboard.php?tab=report trong:
+      housekeeping.php, calendar.php, promotions.php, rooms.php, services.php
+    — Mỗi file đã có sẵn link đúng reports.php ở vị trí trước đó trong sidebar
 
-[ ] Fix admin/services.php sidebar thiếu calendar.php (BUG #16)
-    — Thêm <a href="calendar.php" class="sb-nav-item">📅 Lịch</a> vào sidebar
-    — Vị trí: sau housekeeping.php, trước services.php (theo thứ tự đồng nhất với các trang khác)
+[x] Fix admin/services.php sidebar thiếu calendar.php (BUG #16) — DONE
+    — Thêm <a href="calendar.php">📅 Lịch Đặt Phòng</a> vào dòng 420
+    — Vị trí: giữa "Quản Lý Đặt Phòng" và "Đặt Phòng Mới" (đồng nhất với tất cả admin pages khác)
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
 [x] admin/invoices.php     — DONE v24: stats 5 cards (tổng/đã TT/chưa TT/đã thu/chưa thu),
