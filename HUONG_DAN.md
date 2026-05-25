@@ -139,3 +139,8 @@ KHUYEN_MAI (độc lập)
 - `admin/accounts.php` — Quản lý tài khoản
 - `login.php` — Đăng nhập khách hàng
 - `booking.php` — Đặt phòng online
+
+index.php → Đặt Ngay → booking.php?room=P201
+  ├── [Chưa login] → Landing page → "Đăng Nhập" → login.php?next=customer/dashboard.php?tab=booking&room_type=Đôi
+  │                                                 → Đăng nhập thành công → customer/dashboard.php?tab=booking&room_type=Đôi ✅
+  └── [Đã login]  → Redirect ngay → customer/dashboard.php?tab=booking&room_type=Đôi ✅
