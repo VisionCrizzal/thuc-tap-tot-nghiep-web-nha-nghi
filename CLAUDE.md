@@ -232,6 +232,7 @@ getAllServices(PDO $pdo): array
 | 25 | admin/reports.php — Báo cáo doanh thu | Stats 4 cards, bộ lọc năm/tháng/quý, Chart.js line chart DT + bar chart lượt đặt phòng, top 5 phòng/DV/NV, bảng chi tiết 12 tháng có progress bar, xuất CSV (BOM UTF-8), in báo cáo, sidebar thêm 📈 Báo Cáo vào 8 admin pages | v25 |
 | 26 | customer/profile.php — KH chỉnh sửa hồ sơ | Form cập nhật HoTen/SĐT/Email/DiaChi/GioiTinh/NgaySinh; CCCD optional với checkbox toggle + privacy note; form đổi MK với strength bar + PRG redirect; thêm nút ✏️ Chỉnh sửa trong dashboard profile tab; CCCD hiển thị "🔒 Đã cung cấp" thay vì lộ số | v26 |
 | 27 | admin/accounts.php — Edit thông tin KH + NV | Tab edit_kh: sửa HoTen/SĐT/Email/CCCD/DiaChi bảng KHACH_HANG; tab edit_nv: sửa HoTen/SĐT/Email/ChucVu/NgayVaoLam/TrangThai bảng NHAN_VIEN; nút ✏️ Sửa trong bảng KH, nút 👤 Sửa NV trong bảng staff; fix duplicate sidebar link báo cáo | v27 |
+| 28 | Kiểm tra toàn dự án — audit bugs còn lại | Phát hiện BUG #14 (staff/login.php orphaned), BUG #15 (sidebar stale link ×5 trang), BUG #16 (services.php thiếu calendar); cập nhật TODO đầy đủ | audit |
 
 ---
 
@@ -252,6 +253,9 @@ getAllServices(PDO $pdo): array
 | 11 | **Dead link booking.php** — Click "Đặt Ngay" trên card phòng ở index.php (dòng 826) → 404 | index.php trỏ đến `booking.php?room=...` nhưng file không tồn tại | ✅ **ĐÃ FIX v21** — Tạo booking.php: redirect thẳng nếu KH đã login, landing page + login/register nếu chưa |
 | 12 | **index.php dùng session_start() thay vì config/session.php** | Nếu KH đăng nhập từ index.php, session name khác → không nhận diện được KH đã đăng nhập khi sang trang khác | ✅ **ĐÃ FIX v22** — Đổi `session_start()` → `require_once __DIR__ . '/config/session.php'`; thêm user chip + dropdown trong navbar; đồng bộ footer "Tài Khoản" |
 | 13 | **staff/dashboard.php còn inline session_destroy() ở `?logout`** (dòng 31) | Khi user truy cập `?logout`, trang tự `session_destroy()` thay vì redirect về logout.php — bỏ qua centralized logout logic | ✅ **ĐÃ FIX v23** — `session_destroy(); header('Location:../login.php')` → `header('Location: ../logout.php'); exit` |
+| 14 | **staff/login.php — file v1 orphaned với 3 vấn đề** | (a) dùng raw `session_start()` thay vì `config/session.php` → session name sai; (b) hardcoded test creds lộ trong HTML (`admin/password`, `letan01/letan02`); (c) thừa 1 thẻ `</div>` (21 mở, 22 đóng) | ⏳ **CHƯA FIX** — File không được link từ đâu nhưng vẫn accessible tại `/staff/login.php`. Nên thay toàn bộ nội dung bằng `header('Location: ../login.php'); exit;` |
+| 15 | **5 admin pages còn link sidebar Báo Cáo trỏ về `dashboard.php?tab=report`** thay vì `reports.php` | v25 thêm reports.php vào sidebar nhưng chỉ fix một số trang, 5 trang còn lại (housekeeping, calendar, promotions, rooms, services) vẫn còn link cũ trỏ về tab không tồn tại | ⏳ **CHƯA FIX** — housekeeping.php:299, calendar.php:318, promotions.php:460, rooms.php:421, services.php:431 |
+| 16 | **admin/services.php sidebar thiếu link `calendar.php`** | Tất cả 8 admin pages khác đều có `📅 Lịch → calendar.php` trong sidebar, riêng services.php không có | ⏳ **CHƯA FIX** — sidebar services.php thiếu entry `<a href="calendar.php">📅 Lịch</a>` |
 
 ---
 
@@ -296,6 +300,19 @@ getAllServices(PDO $pdo): array
     — Dòng 31: session_destroy()+header('../login.php') → header('../logout.php')+exit
     — Scan toàn project: không còn file nào dùng session_destroy() inline
 
+[ ] Fix staff/login.php — file v1 orphaned (BUG #14)
+    — Thay toàn bộ nội dung bằng: <?php header('Location: ../login.php'); exit; ?>
+    — Lý do: dùng raw session_start() (sai session name), lộ test creds trong HTML, thừa </div>
+    — File không được link từ đâu nhưng vẫn có thể truy cập trực tiếp qua URL
+
+[ ] Fix sidebar "Báo Cáo" stale link trong 5 admin pages (BUG #15)
+    — Đổi dashboard.php?tab=report → reports.php trong:
+      housekeeping.php:299, calendar.php:318, promotions.php:460, rooms.php:421, services.php:431
+
+[ ] Fix admin/services.php sidebar thiếu calendar.php (BUG #16)
+    — Thêm <a href="calendar.php" class="sb-nav-item">📅 Lịch</a> vào sidebar
+    — Vị trí: sau housekeeping.php, trước services.php (theo thứ tự đồng nhất với các trang khác)
+
 ──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
 [x] admin/invoices.php     — DONE v24: stats 5 cards (tổng/đã TT/chưa TT/đã thu/chưa thu),
                              filter tabs + search + tháng/năm/NV, table đầy đủ, modal chi tiết
@@ -328,21 +345,35 @@ getAllServices(PDO $pdo): array
 [ ] rooms.php + index.php  — Hiển thị ảnh thật phòng (HinhAnh từ DB) trong room cards
                              Hiện tại chỉ dùng SVG giường illustration, không có ảnh thật
 
-[ ] index.php navbar       — Sau khi fix session: hiển thị "Xin chào [Tên]" + dropdown
-                             thay vì "Đăng Nhập/Đăng Ký" khi KH đã đăng nhập
-
-[ ] staff/login.php        — File cũ (v1), không được link từ đâu, dùng session_start()
-                             thẳng. Nên đổi toàn bộ thành redirect về login.php:
-                             header('Location: ../login.php'); exit;
+[x] index.php navbar       — DONE v22: user chip + dropdown (tên KH/NV, avatar, link tài khoản, đăng xuất)
 
 [ ] Email xác nhận         — PHPMailer: gửi email xác nhận ngay khi KH đặt phòng
                              thành công + email nhắc nhở check-in 1 ngày trước
 
-[ ] Export CSV/Excel       — Xuất danh sách đặt phòng, doanh thu từ admin
-                             (PHP fputcsv cho CSV, PhpSpreadsheet cho Excel .xlsx)
+[ ] Export Excel           — reports.php đã có xuất CSV (DONE v25); còn thiếu Excel .xlsx
+                             (cần PhpSpreadsheet) + xuất danh sách đặt phòng từ admin/staff
 
 [ ] Tìm kiếm + phân trang  — Admin/staff booking list: thêm search theo tên KH/mã phòng/ngày
-                             + pagination khi dữ liệu lớn (hiện load toàn bộ, không filter)
+                             + pagination khi dữ liệu lớn
+                             (hiện admin/dashboard.php dùng LIMIT 100, không có UI cảnh báo)
+
+[ ] CSRF protection        — Tất cả POST forms chưa có CSRF token
+                             Nguy cơ: Cross-Site Request Forgery trên các action quan trọng
+                             (hủy phòng, đổi MK, khóa TK, reset MK NV)
+                             Fix: thêm $_SESSION['csrf_token'] + hidden input + verify khi POST
+
+[ ] Brute-force protection — login.php không có rate limiting / lockout
+                             Nguy cơ: tấn công thử mật khẩu không giới hạn lần
+                             Fix: đếm lần thất bại trong session/DB, khóa tạm sau N lần
+
+[ ] 404.php session name   — 404.php dùng @session_start() thay vì config/session.php
+                             Hậu quả: session name khác EASYHOME_SID → không đọc được
+                             $_SESSION['staff_role'] để tạo back link đúng cho admin
+                             Fix: đổi @session_start() → require_once '/path/to/config/session.php'
+
+[ ] 404 route mapping      — Apache/XAMPP chưa được cấu hình để trả 404.php khi URL sai
+                             Hiện tại lỗi 404 trả trang mặc định của Apache, không phải 404.php
+                             Fix: thêm ErrorDocument 404 /khachsan/404.php vào .htaccess
 ```
 
 ---
