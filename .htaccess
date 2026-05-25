@@ -1,0 +1,15 @@
+# Easyhome — Apache .htaccess
+# /Applications/XAMPP/xamppfiles/htdocs/khachsan/
+
+# ── Trang lỗi tùy chỉnh ───────────────────────────────────────────────────
+ErrorDocument 404 /khachsan/404.php
+
+# ── Tắt directory listing (ẩn danh sách file/thư mục) ────────────────────
+Options -Indexes
+
+# ── Bảo vệ file nhạy cảm khỏi truy cập HTTP trực tiếp ───────────────────
+# .md  → CLAUDE.md, HUONG_DAN.md (chứa thông tin nội bộ)
+# .sql → hotel_db.sql (schema + data mẫu, có hash mật khẩu)
+<FilesMatch "\.(md|sql)$">
+    Require all denied
+</FilesMatch>

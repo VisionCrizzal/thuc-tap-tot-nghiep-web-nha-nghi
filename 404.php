@@ -6,10 +6,8 @@ http_response_code(404);
 $backLink  = 'index.php';
 $backLabel = '🏠 Về Trang Chủ';
 
-// Load session nếu đã khởi tạo (không bắt buộc)
-if (session_status() === PHP_SESSION_NONE) {
-    @session_start();
-}
+// Load session với tên EASYHOME_SID (đúng session name, tránh xung đột phpMyAdmin)
+require_once __DIR__ . '/config/session.php';
 if (!empty($_SESSION['staff_role'])) {
     if ($_SESSION['staff_role'] === 'admin') {
         $backLink = 'admin/dashboard.php'; $backLabel = '📊 Dashboard Admin';

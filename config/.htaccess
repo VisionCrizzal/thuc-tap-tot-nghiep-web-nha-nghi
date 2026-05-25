@@ -1,0 +1,3 @@
+# config/.htaccess — Chặn truy cập HTTP trực tiếp vào thư mục config/
+# db.php và session.php chỉ được include bởi PHP, không truy cập trực tiếp
+Require all denied

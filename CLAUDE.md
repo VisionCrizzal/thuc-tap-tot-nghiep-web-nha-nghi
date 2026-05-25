@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 26/05/2026 (v29: login.php — brute-force protection)
+> Cập nhật lần cuối: 26/05/2026 (v30: .htaccess — 404 route mapping + bảo mật)
 
 ---
 
@@ -234,6 +234,7 @@ getAllServices(PDO $pdo): array
 | 27 | admin/accounts.php — Edit thông tin KH + NV | Tab edit_kh: sửa HoTen/SĐT/Email/CCCD/DiaChi bảng KHACH_HANG; tab edit_nv: sửa HoTen/SĐT/Email/ChucVu/NgayVaoLam/TrangThai bảng NHAN_VIEN; nút ✏️ Sửa trong bảng KH, nút 👤 Sửa NV trong bảng staff; fix duplicate sidebar link báo cáo | v27 |
 | 28 | Kiểm tra toàn dự án — audit bugs còn lại | Phát hiện BUG #14 (staff/login.php orphaned), BUG #15 (sidebar stale link ×5 trang), BUG #16 (services.php thiếu calendar); cập nhật TODO đầy đủ | audit |
 | 29 | login.php — Brute-force protection | IP-based lockout (temp JSON file): max 5 lần sai → khóa 15 phút; dots indicator; countdown timer JS; auto-reset sau 1h; reset on success | v29 |
+| 30 | .htaccess — 404 route mapping + bảo mật | ErrorDocument 404 /khachsan/404.php; Options -Indexes; bảo vệ .md/.sql; config/.htaccess deny all | v30 |
 
 ---
 
@@ -373,14 +374,15 @@ getAllServices(PDO $pdo): array
                              JS đếm ngược MM:SS, auto-reload khi hết; reset on successful login;
                              auto-prune entries hết hạn; không tính lần thử khi account bị khóa bởi admin
 
-[ ] 404.php session name   — 404.php dùng @session_start() thay vì config/session.php
-                             Hậu quả: session name khác EASYHOME_SID → không đọc được
-                             $_SESSION['staff_role'] để tạo back link đúng cho admin
-                             Fix: đổi @session_start() → require_once '/path/to/config/session.php'
+[x] 404.php session name   — DONE v29: Đổi @session_start() → require_once __DIR__ . '/config/session.php'
+                             Kết quả: session name đúng EASYHOME_SID, $_SESSION['staff_role'] và
+                             $_SESSION['kh_role'] được đọc chính xác → back link đúng theo vai trò
 
-[ ] 404 route mapping      — Apache/XAMPP chưa được cấu hình để trả 404.php khi URL sai
-                             Hiện tại lỗi 404 trả trang mặc định của Apache, không phải 404.php
-                             Fix: thêm ErrorDocument 404 /khachsan/404.php vào .htaccess
+[x] 404 route mapping      — DONE v30: Tạo .htaccess ở root project:
+                               ErrorDocument 404 /khachsan/404.php
+                               Options -Indexes (ẩn directory listing)
+                               FilesMatch: chặn HTTP access trực tiếp vào .md và .sql
+                             + config/.htaccess: Require all denied (chặn truy cập config/)
 ```
 
 ---
