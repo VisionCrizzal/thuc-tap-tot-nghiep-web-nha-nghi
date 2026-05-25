@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v25: admin/reports.php + sidebar cập nhật 9 file)
+> Cập nhật lần cuối: 25/05/2026 (v26: customer/profile.php + nút chỉnh sửa trong dashboard)
 
 ---
 
@@ -90,6 +90,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 ├── customer/
 │   ├── dashboard.php              ✅ Trang KH: profile (read-only), đặt phòng, lịch sử + KM (DONE)
 │   ├── profile.php                🔲 KH đổi mật khẩu + cập nhật SĐT/email/địa chỉ (TODO)
+│   ├── profile.php                ✅ KH đổi MK + cập nhật HoTen/SĐT/Email/CCCD(optional)/DiaChi/GioiTinh/NgaySinh (DONE v26)
 │   └── booking-detail.php         ✅ Chi tiết đặt phòng: DV, hóa đơn, cọc, điểm, in PDF (DONE v18)
 │
 ├── hotel_db.sql                   ✅ Schema đầy đủ + data mẫu
@@ -229,6 +230,7 @@ getAllServices(PDO $pdo): array
 | 23 | Fix staff/dashboard.php logout inline (BUG #13) | Dòng 31: thay session_destroy()+header(login.php) → header(../logout.php)+exit; scan toàn project — không còn file nào dùng session_destroy() inline | v23 |
 | 24 | admin/invoices.php — Quản lý hóa đơn | Stats 5 cards, filter tabs+search+tháng/năm/NV, table HOA_DON với JOINs, modal chi tiết (bảng tiền+DV), mark paid/unpaid PRG, in PDF, sidebar thêm 🧾 Hóa Đơn vào 8 admin pages | v24 |
 | 25 | admin/reports.php — Báo cáo doanh thu | Stats 4 cards, bộ lọc năm/tháng/quý, Chart.js line chart DT + bar chart lượt đặt phòng, top 5 phòng/DV/NV, bảng chi tiết 12 tháng có progress bar, xuất CSV (BOM UTF-8), in báo cáo, sidebar thêm 📈 Báo Cáo vào 8 admin pages | v25 |
+| 26 | customer/profile.php — KH chỉnh sửa hồ sơ | Form cập nhật HoTen/SĐT/Email/DiaChi/GioiTinh/NgaySinh; CCCD optional với checkbox toggle + privacy note; form đổi MK với strength bar + PRG redirect; thêm nút ✏️ Chỉnh sửa trong dashboard profile tab; CCCD hiển thị "🔒 Đã cung cấp" thay vì lộ số | v26 |
 
 ---
 
@@ -305,10 +307,9 @@ getAllServices(PDO $pdo): array
                              bảng 12 tháng có progress bar inline, xuất CSV (UTF-8 BOM), in báo cáo,
                              sidebar 📈 Báo Cáo thêm vào 8 admin pages còn lại
 
-[ ] customer/profile.php   — KH đổi mật khẩu + cập nhật HoTen/SĐT/Email/CCCD/DiaChi
-                             (tương tự staff/profile.php đã làm v18)
-                             Hiện tại tab Profile trong customer/dashboard.php chỉ READ-ONLY
-                             Thêm nút "Chỉnh sửa" → form edit hoặc trang riêng customer/profile.php
+[x] customer/profile.php   — DONE v26: form chỉnh sửa HoTen/SĐT/Email/DiaChi/GioiTinh/NgaySinh;
+                             CCCD optional (checkbox toggle, privacy note, hiển thị "🔒 Đã cung cấp" trong dashboard);
+                             form đổi MK với strength bar; PRG; nút ✏️ trong dashboard profile tab
 
 [ ] admin/accounts.php     — Bổ sung 2 chức năng đang thiếu:
                              (a) Edit thông tin KH: HoTen, SĐT, Email, CCCD, DiaChi (bảng KHACH_HANG)

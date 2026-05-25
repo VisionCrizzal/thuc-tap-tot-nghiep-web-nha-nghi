@@ -440,6 +440,13 @@ body{background:var(--bg)}
       <div class="card-head">
         <span class="card-head-icon">📋</span>
         <span class="card-head-title">Thông Tin Cá Nhân</span>
+        <a href="profile.php" style="margin-left:auto;display:inline-flex;align-items:center;
+          gap:6px;padding:6px 16px;background:var(--blue);color:#fff;border-radius:8px;
+          font-size:.78rem;font-weight:700;text-decoration:none;letter-spacing:.5px;
+          transition:all .2s" onmouseover="this.style.background='var(--blue-dark)'"
+          onmouseout="this.style.background='var(--blue)'">
+          ✏️ Chỉnh sửa hồ sơ
+        </a>
       </div>
       <div class="card-body">
         <div class="info-grid">
@@ -466,13 +473,29 @@ body{background:var(--bg)}
           <div class="info-item">
             <div class="info-label">CCCD / CMND</div>
             <div class="info-value <?= $kh['CCCD']?'':'empty' ?>">
-              <?= htmlspecialchars($kh['CCCD'] ?: 'Chưa cập nhật') ?>
+              <?= $kh['CCCD'] ? '🔒 Đã cung cấp' : 'Chưa cập nhật' ?>
+            </div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Địa Chỉ</div>
+            <div class="info-value <?= $kh['DiaChi']?'':'empty' ?>">
+              <?= htmlspecialchars($kh['DiaChi'] ?: 'Chưa cập nhật') ?>
             </div>
           </div>
           <div class="info-item">
             <div class="info-label">Ngày Tạo Tài Khoản</div>
             <div class="info-value"><?= date('d/m/Y', strtotime($kh['NgayTao'])) ?></div>
           </div>
+        </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+          <a href="profile.php" style="display:inline-flex;align-items:center;gap:7px;
+            padding:10px 20px;background:var(--blue-pale);border:1.5px solid var(--border);
+            border-radius:9px;color:var(--blue-dark);font-size:.85rem;font-weight:700;
+            text-decoration:none;transition:all .2s"
+            onmouseover="this.style.borderColor='var(--blue-light)'"
+            onmouseout="this.style.borderColor='var(--border)'">
+            ✏️ Chỉnh sửa thông tin &amp; đổi mật khẩu →
+          </a>
         </div>
       </div>
     </div>
