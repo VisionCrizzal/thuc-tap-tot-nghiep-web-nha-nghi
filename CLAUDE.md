@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v19: housekeeping.php + calendar.php + 404.php)
+> Cập nhật lần cuối: 25/05/2026 (v20: promotions.php)
 
 ---
 
@@ -80,7 +80,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   ├── rooms.php                  ✅ CRUD phòng, sơ đồ theo tầng (DONE)
 │   ├── accounts.php               ✅ CRUD TAI_KHOAN + khóa/mở KH, thêm cột TrangThai KH (DONE v17)
 │   ├── services.php               ✅ CRUD dịch vụ — bảng DICH_VU (DONE)
-│   ├── promotions.php             🔲 CRUD khuyến mãi — bảng KHUYEN_MAI (TODO)
+│   ├── promotions.php             ✅ CRUD khuyến mãi — bảng KHUYEN_MAI (DONE v20)
 │   ├── invoices.php               🔲 Danh sách hóa đơn toàn hệ thống (TODO)
 │   ├── reports.php                🔲 Báo cáo doanh thu chi tiết + xuất CSV (TODO)
 │   ├── housekeeping.php           ✅ Phân công & theo dõi dọn phòng (DONE v19)
@@ -221,6 +221,7 @@ getAllServices(PDO $pdo): array
 | 17 | Logout + Quản lý tài khoản | logout.php (session_destroy tập trung) + admin/accounts.php (CRUD TAI_KHOAN, khóa/mở KH, thêm cột TrangThai vào KHACH_HANG, update login.php) | v17 |
 | 18 | Tích điểm + Chi tiết đặt phòng + Hồ sơ NV | staff/checkout.php cộng TichDiem (1.000đ=1đ) + customer/booking-detail.php (DV, hóa đơn, điểm, in PDF) + staff/profile.php (đổi MK, SĐT, email) + customer/dashboard.php (nút "Chi tiết", fix logout) | v18 |
 | 19 | Dọn phòng + Lịch calendar + 404 | admin/housekeeping.php (room cards, đổi TinhTrang, staff panel) + admin/calendar.php (month grid, day detail, keyboard nav) + 404.php (branded, auto-redirect, smart back link) + cập nhật sidebar toàn bộ admin pages | v19 |
+| 20 | Quản lý khuyến mãi | admin/promotions.php — CRUD KHUYEN_MAI, toggle Đang áp dụng/Tạm dừng, computed EffStatus (Hết hạn/Chưa bắt đầu), stats 5 cards, filter tabs, loại % vs VNĐ, days-left badge, form validate, cập nhật sidebar 6 admin pages | v20 |
 
 ---
 
@@ -269,8 +270,9 @@ getAllServices(PDO $pdo): array
                              đổi trạng thái Khả dụng/Ngừng, emoji picker, preview ảnh,
                              thống kê lượt dùng & doanh thu DV (DONE v16)
 
-[ ] admin/promotions.php   — CRUD khuyến mãi (bảng KHUYEN_MAI): thêm/sửa/xóa,
-                             kích hoạt/vô hiệu hóa, xem thống kê lượt dùng
+[x] admin/promotions.php   — CRUD khuyến mãi (bảng KHUYEN_MAI): thêm/sửa/xóa,
+                             kích hoạt/vô hiệu hóa, computed EffStatus (Hết hạn/Chưa bắt đầu),
+                             stats 5 cards, filter 4 tabs, loại %/VNĐ, days-left badge (DONE v20)
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
 [ ] admin/invoices.php     — Danh sách toàn bộ hóa đơn (HOA_DON): lọc theo tháng/

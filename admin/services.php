@@ -422,6 +422,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
     <a href="rooms.php"                     class="sb-nav-item"><span class="sb-nav-icon">🛏️</span><span>Quản Lý Phòng</span></a>
     <a href="housekeeping.php"              class="sb-nav-item"><span class="sb-nav-icon">🧹</span><span>Dọn Phòng</span></a>
     <a href="services.php"                  class="sb-nav-item active"><span class="sb-nav-icon">🛎️</span><span>Dịch Vụ</span></a>
+    <a href="promotions.php"                class="sb-nav-item"><span class="sb-nav-icon">🎁</span><span>Khuyến Mãi</span></a>
     <div class="sb-nav-divider"></div>
     <a href="dashboard.php?tab=staff"       class="sb-nav-item"><span class="sb-nav-icon">👥</span><span>Nhân Viên</span></a>
     <a href="accounts.php"                  class="sb-nav-item"><span class="sb-nav-icon">🔑</span><span>Tài Khoản</span></a>
