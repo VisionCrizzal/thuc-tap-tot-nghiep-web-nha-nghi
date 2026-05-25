@@ -229,38 +229,79 @@ $adminProfile->execute([':tk' => $adminId]);
 $adminProfile = $adminProfile->fetch();
 
 // Thống kê tổng quan
+$bkStatusCnt = $pdo->query("SELECT TrangThai, COUNT(*) cnt FROM DAT_PHONG GROUP BY TrangThai")->fetchAll(PDO::FETCH_KEY_PAIR);
 $stats = [
-    'total'      => (int)$pdo->query("SELECT COUNT(*) FROM DAT_PHONG")->fetchColumn(),
-    'pending'    => (int)$pdo->query("SELECT COUNT(*) FROM DAT_PHONG WHERE TrangThai='Chờ xác nhận'")->fetchColumn(),
-    'occupied'   => (int)$pdo->query("SELECT COUNT(*) FROM PHONG WHERE TinhTrang='Đang ở'")->fetchColumn(),
-    'total_room' => (int)$pdo->query("SELECT COUNT(*) FROM PHONG")->fetchColumn(),
+    'total'         => array_sum($bkStatusCnt),
+    'pending'       => $bkStatusCnt['Chờ xác nhận']  ?? 0,
+    'bk_dang'       => $bkStatusCnt['Đã nhận phòng'] ?? 0,
+    'bk_tra'        => $bkStatusCnt['Đã trả phòng']  ?? 0,
+    'bk_huy'        => $bkStatusCnt['Đã hủy']        ?? 0,
+    'occupied'      => (int)$pdo->query("SELECT COUNT(*) FROM PHONG WHERE TinhTrang='Đang ở'")->fetchColumn(),
+    'total_room'    => (int)$pdo->query("SELECT COUNT(*) FROM PHONG")->fetchColumn(),
     'revenue_month' => (float)$pdo->query("SELECT COALESCE(SUM(TongGia),0) FROM DAT_PHONG WHERE TrangThai NOT IN ('Đã hủy') AND MONTH(NgayDat)=MONTH(NOW()) AND YEAR(NgayDat)=YEAR(NOW())")->fetchColumn(),
     'checkin_today' => (int)$pdo->query("SELECT COUNT(*) FROM DAT_PHONG WHERE DATE(NgayCheckIn)=CURDATE() AND TrangThai NOT IN ('Đã hủy')")->fetchColumn(),
 ];
 
-// Danh sách đặt phòng
-$filterStatus = $_GET['filter'] ?? 'all';
+// ── Pending bookings cho overview tab (luôn lấy, không bị ảnh hưởng bởi pagination) ──
+$pendingBookings = $pdo->query("
+    SELECT dp.*, kh.HoTen AS TenKH, kh.SoDienThoai,
+           p.LoaiPhong, p.GiaPhong, p.Tang
+    FROM DAT_PHONG dp
+    JOIN KHACH_HANG kh ON dp.MaKH=kh.MaKH
+    JOIN PHONG p ON dp.MaPhong=p.MaPhong
+    WHERE dp.TrangThai='Chờ xác nhận'
+    ORDER BY dp.NgayDat ASC LIMIT 5")->fetchAll();
+
+// ── Danh sách đặt phòng — tìm kiếm + phân trang (cho bookings tab) ────────────
+$filterStatus  = $_GET['filter'] ?? 'all';
+$search        = trim($_GET['search'] ?? '');
+$page          = max(1, (int)($_GET['page'] ?? 1));
+$perPage       = 20;
 $allowedStatus = ['Chờ xác nhận','Đã nhận phòng','Đã trả phòng','Đã hủy'];
+
+$bkWhere  = [];
+$bkParams = [];
 if ($filterStatus !== 'all' && in_array($filterStatus, $allowedStatus)) {
-    $bkStmt = $pdo->prepare("
-        SELECT dp.*, kh.HoTen AS TenKH, kh.SoDienThoai,
-               p.LoaiPhong, p.GiaPhong, p.Tang
-        FROM DAT_PHONG dp
-        JOIN KHACH_HANG kh ON dp.MaKH=kh.MaKH
-        JOIN PHONG p ON dp.MaPhong=p.MaPhong
-        WHERE dp.TrangThai = :st
-        ORDER BY dp.NgayDat DESC LIMIT 100");
-    $bkStmt->execute([':st' => $filterStatus]);
-} else {
-    $bkStmt = $pdo->query("
-        SELECT dp.*, kh.HoTen AS TenKH, kh.SoDienThoai,
-               p.LoaiPhong, p.GiaPhong, p.Tang
-        FROM DAT_PHONG dp
-        JOIN KHACH_HANG kh ON dp.MaKH=kh.MaKH
-        JOIN PHONG p ON dp.MaPhong=p.MaPhong
-        ORDER BY dp.NgayDat DESC LIMIT 100");
+    $bkWhere[]       = "dp.TrangThai = :st";
+    $bkParams[':st'] = $filterStatus;
 }
+if ($search !== '') {
+    $bkWhere[]       = "(kh.HoTen LIKE :q1 OR kh.SoDienThoai LIKE :q2 OR dp.MaDP LIKE :q3 OR dp.MaPhong LIKE :q4)";
+    $s = "%$search%";
+    $bkParams[':q1'] = $bkParams[':q2'] = $bkParams[':q3'] = $bkParams[':q4'] = $s;
+}
+$bkWhereSQL = $bkWhere ? "WHERE " . implode(" AND ", $bkWhere) : "";
+
+$cntStmt = $pdo->prepare("SELECT COUNT(*) FROM DAT_PHONG dp
+    JOIN KHACH_HANG kh ON dp.MaKH=kh.MaKH
+    JOIN PHONG p ON dp.MaPhong=p.MaPhong
+    $bkWhereSQL");
+$cntStmt->execute($bkParams);
+$bkTotal = (int)$cntStmt->fetchColumn();
+$bkPages = max(1, (int)ceil($bkTotal / $perPage));
+$page    = min($page, $bkPages);
+$bkOff   = ($page - 1) * $perPage;
+
+$bkStmt = $pdo->prepare("
+    SELECT dp.*, kh.HoTen AS TenKH, kh.SoDienThoai,
+           p.LoaiPhong, p.GiaPhong, p.Tang
+    FROM DAT_PHONG dp
+    JOIN KHACH_HANG kh ON dp.MaKH=kh.MaKH
+    JOIN PHONG p ON dp.MaPhong=p.MaPhong
+    $bkWhereSQL
+    ORDER BY dp.NgayDat DESC
+    LIMIT :lim OFFSET :off");
+foreach ($bkParams as $k => $v) $bkStmt->bindValue($k, $v);
+$bkStmt->bindValue(':lim', $perPage, PDO::PARAM_INT);
+$bkStmt->bindValue(':off', $bkOff,  PDO::PARAM_INT);
+$bkStmt->execute();
 $bookings = $bkStmt->fetchAll();
+
+// URL builder cho pagination — giữ nguyên filter + search
+$bkUrl = fn(array $ov = []) => '?' . http_build_query(array_merge(
+    ['tab' => 'bookings', 'filter' => $filterStatus, 'search' => $search],
+    $ov
+));
 
 // Phòng trống + khách hàng cho form đặt phòng
 $availRooms = $pdo->query("SELECT * FROM PHONG WHERE TinhTrang='Trống' ORDER BY Tang, MaPhong")->fetchAll();
@@ -299,9 +340,9 @@ $revType = $pdo->query("
 $maxRevType = max(array_column($revType, 'DoanhThu') ?: [1]);
 
 // Helpers
-function fmt($n)  { return number_format((float)$n, 0, ',', '.'); }
-function esc($s)  { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
-function statusBadge($s) {
+function fmt(mixed $n): string  { return number_format((float)$n, 0, ',', '.'); }
+function esc(mixed $s): string  { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+function statusBadge(mixed $s): string {
     $map = [
         'Chờ xác nhận' => ['#f59e0b','#fffbeb','⏳'],
         'Đã nhận phòng'=> ['#3b82f6','#eff6ff','🏨'],
@@ -526,6 +567,33 @@ select.form-ctrl{cursor:pointer}
   .content{padding:16px}.form-grid{grid-template-columns:1fr}.report-grid{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ── SEARCH + PAGINATION ── */
+.search-row{display:flex;gap:8px;align-items:center}
+.search-wrap{flex:1;position:relative;display:flex;align-items:center}
+.search-icon{position:absolute;left:11px;font-size:.88rem;pointer-events:none;color:var(--muted)}
+.search-input{width:100%;padding:9px 40px 9px 34px;border:1.5px solid var(--border);
+  border-radius:9px;font-size:.85rem;font-family:var(--font);background:var(--blue-pale);
+  outline:none;transition:all .2s}
+.search-input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 3px rgba(29,78,216,.1)}
+.search-clear{position:absolute;right:9px;font-size:.75rem;color:var(--muted);text-decoration:none;
+  padding:2px 7px;border-radius:5px;background:var(--blue-mid);transition:all .2s;font-weight:700}
+.search-clear:hover{background:var(--blue-light);color:#fff}
+.btn-search{padding:9px 18px;background:var(--blue);color:#fff;border:none;border-radius:9px;
+  font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font);
+  transition:all .2s;white-space:nowrap}
+.btn-search:hover{background:var(--blue-dark)}
+
+.pager{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;border-top:1.5px solid var(--border);flex-wrap:wrap;gap:8px;background:#fafcff}
+.pager-info{font-size:.75rem;color:var(--muted);font-weight:600}
+.pager-btns{display:flex;gap:4px}
+.pager-btn{padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);
+  background:#fff;font-size:.79rem;font-weight:700;color:var(--muted);
+  text-decoration:none;transition:all .2s;min-width:32px;text-align:center;line-height:1.4}
+.pager-btn:hover{border-color:var(--blue-light);color:var(--blue);background:var(--blue-pale)}
+.pager-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;pointer-events:none}
+.pager-btn.disabled{opacity:.38;pointer-events:none;cursor:default}
 </style>
 </head>
 <body>
@@ -707,7 +775,7 @@ select.form-ctrl{cursor:pointer}
 
       <!-- Pending bookings list -->
       <?php
-        $pendingList = array_filter($bookings, fn($b) => $b['TrangThai'] === 'Chờ xác nhận');
+        $pendingList = $pendingBookings;
       ?>
       <?php if (count($pendingList) > 0): ?>
       <div class="tbl-wrap">
@@ -761,8 +829,12 @@ select.form-ctrl{cursor:pointer}
 
       <div class="quick-row">
         <?php
-          $countMap = ['Chờ xác nhận'=>0,'Đã nhận phòng'=>0,'Đã trả phòng'=>0,'Đã hủy'=>0];
-          foreach ($bookings as $b) { if (isset($countMap[$b['TrangThai']])) $countMap[$b['TrangThai']]++; }
+          $countMap = [
+              'Chờ xác nhận' => $stats['pending'],
+              'Đã nhận phòng'=> $stats['bk_dang'],
+              'Đã trả phòng' => $stats['bk_tra'],
+              'Đã hủy'       => $stats['bk_huy'],
+          ];
           $colors = ['Chờ xác nhận'=>'#d97706','Đã nhận phòng'=>'#1d4ed8','Đã trả phòng'=>'#16a34a','Đã hủy'=>'#6b7280'];
         ?>
         <?php foreach ($countMap as $st => $cnt): ?>
@@ -781,19 +853,42 @@ select.form-ctrl{cursor:pointer}
         </div>
       </div>
 
+      <!-- Search -->
+      <form method="GET" class="search-row" style="margin-bottom:12px">
+        <input type="hidden" name="tab" value="bookings">
+        <input type="hidden" name="filter" value="<?= esc($filterStatus) ?>">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" name="search" value="<?= esc($search) ?>"
+                 class="search-input" placeholder="Tìm tên khách hàng, SĐT, mã ĐP, mã phòng...">
+          <?php if ($search !== ''): ?>
+          <a href="<?= esc($bkUrl(['search' => '', 'page' => 1])) ?>" class="search-clear" title="Xoá tìm kiếm">✕</a>
+          <?php endif; ?>
+        </div>
+        <button type="submit" class="btn-search">🔍 Tìm</button>
+      </form>
+
       <div class="tbl-wrap">
         <div class="tbl-top">
-          <div class="tbl-top-title">📋 Danh Sách Đặt Phòng</div>
+          <div>
+            <div class="tbl-top-title">
+              📋 Danh Sách Đặt Phòng
+              <?= $search !== '' ? "<span style='font-size:.8rem;font-weight:400;color:var(--blue)'>— \"" . esc($search) . "\"</span>" : '' ?>
+            </div>
+            <div style="font-size:.72rem;color:var(--muted);margin-top:2px"><?= $bkTotal ?> kết quả</div>
+          </div>
           <div class="filter-tabs">
-            <a href="?tab=bookings&filter=all" class="ftab <?= $filterStatus==='all'?'active':'' ?>">Tất cả</a>
-            <a href="?tab=bookings&filter=Chờ+xác+nhận" class="ftab <?= $filterStatus==='Chờ xác nhận'?'active':'' ?>">⏳ Chờ XN</a>
-            <a href="?tab=bookings&filter=Đã+nhận+phòng" class="ftab <?= $filterStatus==='Đã nhận phòng'?'active':'' ?>">🏨 Đang ở</a>
-            <a href="?tab=bookings&filter=Đã+trả+phòng" class="ftab <?= $filterStatus==='Đã trả phòng'?'active':'' ?>">✅ Đã trả</a>
-            <a href="?tab=bookings&filter=Đã+hủy" class="ftab <?= $filterStatus==='Đã hủy'?'active':'' ?>">✗ Đã hủy</a>
+            <a href="<?= esc($bkUrl(['filter' => 'all', 'page' => 1])) ?>" class="ftab <?= $filterStatus==='all'?'active':'' ?>">Tất cả (<?= $stats['total'] ?>)</a>
+            <a href="<?= esc($bkUrl(['filter' => 'Chờ xác nhận', 'page' => 1])) ?>" class="ftab <?= $filterStatus==='Chờ xác nhận'?'active':'' ?>">⏳ Chờ XN (<?= $stats['pending'] ?>)</a>
+            <a href="<?= esc($bkUrl(['filter' => 'Đã nhận phòng', 'page' => 1])) ?>" class="ftab <?= $filterStatus==='Đã nhận phòng'?'active':'' ?>">🏨 Đang ở (<?= $stats['bk_dang'] ?>)</a>
+            <a href="<?= esc($bkUrl(['filter' => 'Đã trả phòng', 'page' => 1])) ?>" class="ftab <?= $filterStatus==='Đã trả phòng'?'active':'' ?>">✅ Đã trả (<?= $stats['bk_tra'] ?>)</a>
+            <a href="<?= esc($bkUrl(['filter' => 'Đã hủy', 'page' => 1])) ?>" class="ftab <?= $filterStatus==='Đã hủy'?'active':'' ?>">✗ Đã hủy (<?= $stats['bk_huy'] ?>)</a>
           </div>
         </div>
         <?php if (empty($bookings)): ?>
-          <div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Không có đặt phòng nào.</div></div>
+          <div class="empty-state"><div class="empty-icon">📭</div>
+            <div class="empty-text"><?= $search ? "Không tìm thấy đặt phòng nào khớp với \"" . esc($search) . "\"." : 'Không có đặt phòng nào.' ?></div>
+          </div>
         <?php else: ?>
         <div style="overflow-x:auto">
         <table>
@@ -843,6 +938,34 @@ select.form-ctrl{cursor:pointer}
           <?php endforeach; ?>
           </tbody>
         </table>
+        </div>
+        <!-- Pagination -->
+        <div class="pager">
+          <span class="pager-info">
+            <?php if ($bkTotal === 0): ?>
+              Không có kết quả<?= $search ? " cho \"" . esc($search) . "\"" : '' ?>
+            <?php else: ?>
+              Hiển thị <?= $bkOff + 1 ?>–<?= min($bkOff + $perPage, $bkTotal) ?> / <?= $bkTotal ?> đặt phòng
+            <?php endif; ?>
+          </span>
+          <?php if ($bkPages > 1): ?>
+          <div class="pager-btns">
+            <a href="<?= esc($bkUrl(['page' => $page - 1])) ?>"
+               class="pager-btn <?= $page <= 1 ? 'disabled' : '' ?>">‹</a>
+            <?php
+            $pStart = max(1, $page - 2);
+            $pEnd   = min($bkPages, $page + 2);
+            if ($pStart > 1) echo '<span class="pager-btn disabled">…</span>';
+            for ($p = $pStart; $p <= $pEnd; $p++):
+            ?>
+            <a href="<?= esc($bkUrl(['page' => $p])) ?>"
+               class="pager-btn <?= $p === $page ? 'active' : '' ?>"><?= $p ?></a>
+            <?php endfor;
+            if ($pEnd < $bkPages) echo '<span class="pager-btn disabled">…</span>'; ?>
+            <a href="<?= esc($bkUrl(['page' => $page + 1])) ?>"
+               class="pager-btn <?= $page >= $bkPages ? 'disabled' : '' ?>">›</a>
+          </div>
+          <?php endif; ?>
         </div>
         <?php endif; ?>
       </div>

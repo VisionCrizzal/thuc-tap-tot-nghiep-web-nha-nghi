@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v27: admin/accounts.php — edit thông tin KH + NV)
+> Cập nhật lần cuối: 26/05/2026 (v29: login.php — brute-force protection)
 
 ---
 
@@ -233,6 +233,7 @@ getAllServices(PDO $pdo): array
 | 26 | customer/profile.php — KH chỉnh sửa hồ sơ | Form cập nhật HoTen/SĐT/Email/DiaChi/GioiTinh/NgaySinh; CCCD optional với checkbox toggle + privacy note; form đổi MK với strength bar + PRG redirect; thêm nút ✏️ Chỉnh sửa trong dashboard profile tab; CCCD hiển thị "🔒 Đã cung cấp" thay vì lộ số | v26 |
 | 27 | admin/accounts.php — Edit thông tin KH + NV | Tab edit_kh: sửa HoTen/SĐT/Email/CCCD/DiaChi bảng KHACH_HANG; tab edit_nv: sửa HoTen/SĐT/Email/ChucVu/NgayVaoLam/TrangThai bảng NHAN_VIEN; nút ✏️ Sửa trong bảng KH, nút 👤 Sửa NV trong bảng staff; fix duplicate sidebar link báo cáo | v27 |
 | 28 | Kiểm tra toàn dự án — audit bugs còn lại | Phát hiện BUG #14 (staff/login.php orphaned), BUG #15 (sidebar stale link ×5 trang), BUG #16 (services.php thiếu calendar); cập nhật TODO đầy đủ | audit |
+| 29 | login.php — Brute-force protection | IP-based lockout (temp JSON file): max 5 lần sai → khóa 15 phút; dots indicator; countdown timer JS; auto-reset sau 1h; reset on success | v29 |
 
 ---
 
@@ -354,18 +355,23 @@ getAllServices(PDO $pdo): array
 [ ] Export Excel           — reports.php đã có xuất CSV (DONE v25); còn thiếu Excel .xlsx
                              (cần PhpSpreadsheet) + xuất danh sách đặt phòng từ admin/staff
 
-[ ] Tìm kiếm + phân trang  — Admin/staff booking list: thêm search theo tên KH/mã phòng/ngày
-                             + pagination khi dữ liệu lớn
-                             (hiện admin/dashboard.php dùng LIMIT 100, không có UI cảnh báo)
+[x] Tìm kiếm + phân trang  — DONE: admin/dashboard.php + staff/dashboard.php
+                             — Search bar: tìm theo tên KH, SĐT, mã ĐP, mã phòng (WHERE LIKE)
+                             — Pagination: 20 bản ghi/trang, hiển thị X–Y/tổng, nút ‹ 1 2 3 ›
+                             — Filter tabs giữ nguyên search khi click, URL: ?tab=bookings&filter=X&search=Y&page=Z
+                             — admin: filter tabs hiện số đếm từ $stats (chính xác, không bị cắt bởi LIMIT)
+                             — admin: overview tab dùng $pendingBookings riêng (không bị ảnh hưởng pagination)
 
 [ ] CSRF protection        — Tất cả POST forms chưa có CSRF token
                              Nguy cơ: Cross-Site Request Forgery trên các action quan trọng
                              (hủy phòng, đổi MK, khóa TK, reset MK NV)
                              Fix: thêm $_SESSION['csrf_token'] + hidden input + verify khi POST
 
-[ ] Brute-force protection — login.php không có rate limiting / lockout
-                             Nguy cơ: tấn công thử mật khẩu không giới hạn lần
-                             Fix: đếm lần thất bại trong session/DB, khóa tạm sau N lần
+[x] Brute-force protection — DONE v29: IP-based tracking (md5 hash, temp JSON /tmp/easyhome_bf.json)
+                             Max 5 lần sai → khóa 15 phút; dots indicator (đỏ/vàng) từ lần 1+;
+                             cảnh báo "còn N lần" từ lần 3+; locked state: ẩn form, nút countdown,
+                             JS đếm ngược MM:SS, auto-reload khi hết; reset on successful login;
+                             auto-prune entries hết hạn; không tính lần thử khi account bị khóa bởi admin
 
 [ ] 404.php session name   — 404.php dùng @session_start() thay vì config/session.php
                              Hậu quả: session name khác EASYHOME_SID → không đọc được
