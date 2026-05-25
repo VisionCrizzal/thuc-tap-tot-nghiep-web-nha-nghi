@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v18: TichDiem + booking-detail.php + staff/profile.php)
+> Cập nhật lần cuối: 25/05/2026 (v19: housekeeping.php + calendar.php + 404.php)
 
 ---
 
@@ -57,7 +57,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 ├── rooms.php                      ✅ Trang tìm kiếm & kết quả phòng trống (DONE)
 ├── logout.php                     ✅ Dedicated logout — session_destroy() + redirect (DONE v17)
 ├── forgot-password.php            🔲 Quên mật khẩu (TODO)
-├── 404.php                        🔲 Custom error page (TODO)
+├── 404.php                        ✅ Custom error page — branded, auto-redirect 15s (DONE v19)
 │
 ├── config/
 │   ├── db.php                     ✅ PDO connection + helpers (DONE)
@@ -83,8 +83,8 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   ├── promotions.php             🔲 CRUD khuyến mãi — bảng KHUYEN_MAI (TODO)
 │   ├── invoices.php               🔲 Danh sách hóa đơn toàn hệ thống (TODO)
 │   ├── reports.php                🔲 Báo cáo doanh thu chi tiết + xuất CSV (TODO)
-│   ├── housekeeping.php           🔲 Phân công & theo dõi dọn phòng (TODO)
-│   └── calendar.php               🔲 Lịch đặt phòng dạng calendar (TODO)
+│   ├── housekeeping.php           ✅ Phân công & theo dõi dọn phòng (DONE v19)
+│   └── calendar.php               ✅ Lịch đặt phòng dạng calendar tháng (DONE v19)
 │
 ├── customer/
 │   ├── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử + KM (DONE)
@@ -220,6 +220,7 @@ getAllServices(PDO $pdo): array
 | 16 | Quản lý dịch vụ admin | admin/services.php — CRUD DICH_VU, toggle trạng thái, emoji picker, preview ảnh, stat cards lượt dùng & doanh thu DV | v16 |
 | 17 | Logout + Quản lý tài khoản | logout.php (session_destroy tập trung) + admin/accounts.php (CRUD TAI_KHOAN, khóa/mở KH, thêm cột TrangThai vào KHACH_HANG, update login.php) | v17 |
 | 18 | Tích điểm + Chi tiết đặt phòng + Hồ sơ NV | staff/checkout.php cộng TichDiem (1.000đ=1đ) + customer/booking-detail.php (DV, hóa đơn, điểm, in PDF) + staff/profile.php (đổi MK, SĐT, email) + customer/dashboard.php (nút "Chi tiết", fix logout) | v18 |
+| 19 | Dọn phòng + Lịch calendar + 404 | admin/housekeeping.php (room cards, đổi TinhTrang, staff panel) + admin/calendar.php (month grid, day detail, keyboard nav) + 404.php (branded, auto-redirect, smart back link) + cập nhật sidebar toàn bộ admin pages | v19 |
 
 ---
 
@@ -293,13 +294,14 @@ getAllServices(PDO $pdo): array
 [ ] forgot-password.php    — Flow quên mật khẩu: nhập email → tạo token → gửi link
                              reset qua email (cần PHPMailer hoặc PHP mail())
 
-[ ] admin/housekeeping.php — Phân công dọn phòng: danh sách phòng "Đang dọn",
-                             assign NV, NV cập nhật hoàn thành → TinhTrang → "Trống"
+[x] admin/housekeeping.php — Room cards theo TinhTrang, đổi trạng thái nhanh,
+                             staff panel danh sách NV trực ca (DONE v19)
 
-[ ] admin/calendar.php     — Lịch đặt phòng dạng calendar tháng/tuần: xem phòng
-                             nào trống theo ngày, kéo thả đặt phòng mới (FullCalendar.js)
+[x] admin/calendar.php     — Month grid PHP, mỗi ô hiển thị count đặt phòng + dots màu,
+                             chọn ngày xem detail, navigate tháng, keyboard arrows (DONE v19)
 
-[ ] 404.php / error.php    — Custom error pages đồng bộ brand Easyhome
+[x] 404.php / error.php    — Branded 404, số lớn animate, smart back link theo role,
+                             auto-redirect 15s, cancel on user interaction (DONE v19)
 
 [ ] Email xác nhận         — PHPMailer: gửi email xác nhận ngay khi KH đặt phòng
                              thành công + email nhắc nhở check-in 1 ngày trước

@@ -565,14 +565,24 @@ select.form-ctrl{cursor:pointer}
       <?php endif; ?>
     </a>
     <?php endforeach; ?>
+    <a href="calendar.php" class="sb-nav-item">
+      <span class="sb-nav-icon">📅</span>
+      <span>Lịch Đặt Phòng</span>
+    </a>
+    <div class="sb-nav-divider"></div>
     <a href="rooms.php" class="sb-nav-item">
       <span class="sb-nav-icon">🛏️</span>
       <span>Quản Lý Phòng</span>
+    </a>
+    <a href="housekeeping.php" class="sb-nav-item">
+      <span class="sb-nav-icon">🧹</span>
+      <span>Dọn Phòng</span>
     </a>
     <a href="services.php" class="sb-nav-item">
       <span class="sb-nav-icon">🛎️</span>
       <span>Dịch Vụ</span>
     </a>
+    <div class="sb-nav-divider"></div>
     <a href="accounts.php" class="sb-nav-item">
       <span class="sb-nav-icon">🔑</span>
       <span>Tài Khoản</span>
