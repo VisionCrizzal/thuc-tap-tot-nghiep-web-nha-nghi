@@ -111,6 +111,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     $pdo->prepare("UPDATE PHONG SET TinhTrang='Đang dọn' WHERE MaPhong=?")
         ->execute([$bk['MaPhong']]);
 
+    // ── Cộng điểm tích lũy cho KH: 1.000đ = 1 điểm ──────────────────────────
+    $diemConged = (int)floor($newTongTien / 1000);
+    if ($diemConged > 0 && !empty($bk['MaKH'])) {
+        $pdo->prepare("UPDATE KHACH_HANG SET TichDiem = TichDiem + ? WHERE MaKH = ?")
+            ->execute([$diemConged, $bk['MaKH']]);
+    }
+
     header("Location: checkout.php?dp={$maDP}&done=1");
     exit;
 }
@@ -120,6 +127,8 @@ if ($done) $hd = $fetchHD();
 $conLai = $hd ? max(0, $hd['TongTien'] - $hd['TienCocDaThu']) : 0;
 $giamGiaDisp = $hd ? parseGiamGia($hd['GhiChu'] ?? '') : 0;
 $kmNameDisp  = $hd ? parseKMName($hd['GhiChu'] ?? '')  : '';
+$diemCong    = ($done && $hd && $hd['TrangThai'] === 'Đã thanh toán')
+               ? (int)floor($hd['TongTien'] / 1000) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -608,6 +617,9 @@ body{background:var(--bg);min-height:100vh}
 <div class="main">
   <div class="success-banner no-print">
     ✅ Check-out thành công! Phòng <?= $bk['MaPhong'] ?> đã chuyển sang <strong>Đang dọn</strong>.
+    <?php if ($diemCong > 0): ?>
+    &nbsp;·&nbsp; ⭐ Khách tích được <strong><?= number_format($diemCong) ?> điểm</strong> thưởng.
+    <?php endif; ?>
     Bấm <strong>In Hóa Đơn PDF</strong> hoặc nút bên dưới để in.
   </div>
 
@@ -723,6 +735,13 @@ body{background:var(--bg);min-height:100vh}
     </div>
 
     <div class="inv-footer">
+      <?php if ($diemCong > 0): ?>
+      <div style="background:#fefce8;border:1px solid #fcd34d;border-radius:8px;
+                  padding:9px 16px;margin-bottom:12px;font-size:.82rem;color:#92400e;">
+        ⭐ Quý khách đã tích lũy được <strong><?= number_format($diemCong) ?> điểm thưởng</strong>
+        từ lần lưu trú này (1.000đ = 1 điểm)
+      </div>
+      <?php endif; ?>
       <div class="inv-footer-main">Cảm ơn quý khách đã lưu trú tại Easyhome Hotel! 🏨</div>
       <div class="inv-footer-sub">
         Mọi thắc mắc xin liên hệ: <strong>0768.466.686</strong><br>

@@ -556,6 +556,14 @@ body{background:var(--bg);min-height:100vh}
         <div class="nv-sub">Tài khoản: <?= htmlspecialchars($staffId) ?> · <?= $nv['VaiTro'] === 'admin' ? 'Quản lý' : 'Nhân viên' ?></div>
         <div class="nv-tag">🏷️ <?= htmlspecialchars($nv['ChucVu']) ?></div>
       </div>
+      <a href="profile.php" style="margin-left:auto;flex-shrink:0;background:rgba(255,255,255,.2);
+         border:1.5px solid rgba(255,255,255,.35);color:#fff;padding:8px 16px;border-radius:9px;
+         font-size:.79rem;font-weight:700;text-decoration:none;transition:all .2s;
+         display:inline-flex;align-items:center;gap:6px"
+         onmouseover="this.style.background='rgba(255,255,255,.32)'"
+         onmouseout="this.style.background='rgba(255,255,255,.2)'">
+        ✏️ Chỉnh sửa hồ sơ
+      </a>
     </div>
     <div class="card">
       <div class="card-head">

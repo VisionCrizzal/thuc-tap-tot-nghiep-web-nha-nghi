@@ -350,6 +350,10 @@ body{background:var(--bg)}
   padding:6px 16px;border-radius:7px;font-family:var(--font);font-size:.76rem;
   font-weight:700;cursor:pointer;transition:all .2s}
 .btn-cancel:hover{background:#fecaca}
+.btn-detail{background:var(--blue-pale);border:1.5px solid var(--border);color:var(--blue-dark);
+  padding:6px 16px;border-radius:7px;font-size:.76rem;font-weight:700;
+  text-decoration:none;display:inline-block;transition:all .2s}
+.btn-detail:hover{border-color:var(--blue);background:var(--blue-mid)}
 .empty-state{text-align:center;padding:50px 20px;color:var(--muted)}
 .empty-icon{font-size:2.5rem;margin-bottom:12px}
 
@@ -395,12 +399,10 @@ body{background:var(--bg)}
   </a>
   <div class="topbar-right">
     <span class="topbar-user">👤 <?= htmlspecialchars($khName) ?></span>
-    <a href="?logout=1" class="btn-logout">Đăng xuất</a>
+    <a href="../logout.php" class="btn-logout">Đăng xuất</a>
   </div>
 </div>
 
-<!-- LOGOUT handler inline -->
-<?php if (isset($_GET['logout'])): session_destroy(); header('Location: ../login.php'); exit; endif; ?>
 
 <div class="main">
 
@@ -708,13 +710,16 @@ body{background:var(--bg)}
       <?php endif; ?>
       <div class="booking-footer">
         <div class="bk-total">Tổng: <?= number_format($bk['TongGia'],0,',','.') ?>đ</div>
-        <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
-        <form method="POST" onsubmit="return confirm('Xác nhận hủy đặt phòng này?')">
-          <input type="hidden" name="action" value="huy_phong">
-          <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
-          <button type="submit" class="btn-cancel">✕ Hủy đặt phòng</button>
-        </form>
-        <?php endif; ?>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <a href="booking-detail.php?dp=<?= urlencode($bk['MaDP']) ?>" class="btn-detail">🔍 Chi tiết</a>
+          <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
+          <form method="POST" onsubmit="return confirm('Xác nhận hủy đặt phòng này?')" style="margin:0">
+            <input type="hidden" name="action" value="huy_phong">
+            <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
+            <button type="submit" class="btn-cancel">✕ Hủy</button>
+          </form>
+          <?php endif; ?>
+        </div>
       </div>
     </div>
     <?php endforeach; ?>

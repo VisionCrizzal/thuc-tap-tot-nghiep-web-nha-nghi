@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v17: logout.php + admin/accounts.php)
+> Cập nhật lần cuối: 25/05/2026 (v18: TichDiem + booking-detail.php + staff/profile.php)
 
 ---
 
@@ -73,7 +73,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   ├── dashboard.php              ✅ Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE)
 │   ├── checkin.php                ✅ Check-in form: DV, KM, thu cọc đa phương thức (DONE)
 │   ├── checkout.php               ✅ Check-out + in hóa đơn PDF (DONE)
-│   └── profile.php                🔲 NV đổi mật khẩu + cập nhật thông tin (TODO)
+│   └── profile.php                ✅ NV đổi mật khẩu + cập nhật SĐT/email (DONE v18)
 │
 ├── admin/
 │   ├── dashboard.php              ✅ Tổng quan + quản lý đặt phòng + nhân viên (DONE)
@@ -88,7 +88,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │
 ├── customer/
 │   ├── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử + KM (DONE)
-│   └── booking-detail.php         🔲 Chi tiết đặt phòng: DV, hóa đơn, trạng thái cọc (TODO)
+│   └── booking-detail.php         ✅ Chi tiết đặt phòng: DV, hóa đơn, cọc, điểm, in PDF (DONE v18)
 │
 ├── hotel_db.sql                   ✅ Schema đầy đủ + data mẫu
 ├── HUONG_DAN.md                   Cài đặt XAMPP
@@ -219,6 +219,7 @@ getAllServices(PDO $pdo): array
 | 15 | Check-in, Check-out, thanh toán đa phương thức, in hóa đơn PDF, khuyến mãi | staff/checkin.php + staff/checkout.php (cash/card/QR/Apple Pay/Google Pay/Samsung Pay, in PDF) + promo trong customer/dashboard.php + sửa staff/dashboard.php | v15 |
 | 16 | Quản lý dịch vụ admin | admin/services.php — CRUD DICH_VU, toggle trạng thái, emoji picker, preview ảnh, stat cards lượt dùng & doanh thu DV | v16 |
 | 17 | Logout + Quản lý tài khoản | logout.php (session_destroy tập trung) + admin/accounts.php (CRUD TAI_KHOAN, khóa/mở KH, thêm cột TrangThai vào KHACH_HANG, update login.php) | v17 |
+| 18 | Tích điểm + Chi tiết đặt phòng + Hồ sơ NV | staff/checkout.php cộng TichDiem (1.000đ=1đ) + customer/booking-detail.php (DV, hóa đơn, điểm, in PDF) + staff/profile.php (đổi MK, SĐT, email) + customer/dashboard.php (nút "Chi tiết", fix logout) | v18 |
 
 ---
 
@@ -279,18 +280,15 @@ getAllServices(PDO $pdo): array
                              Chart.js (line chart doanh thu, bar chart công suất),
                              top phòng/dịch vụ/NV, xuất báo cáo CSV
 
-[ ] Tích điểm KH (TichDiem) — Cộng điểm sau mỗi checkout thành công
-                             (1.000đ = 1 điểm), trừ điểm khi đổi ưu đãi,
-                             hiển thị điểm tích lũy trong customer/dashboard.php
-                             ⚠️ KHACH_HANG.TichDiem hiện = 0 mãi mãi, chưa cập nhật!
+[x] Tích điểm KH (TichDiem) — Cộng điểm sau checkout (1.000đ=1đ) trong staff/checkout.php
+                             Hiển thị điểm trong hóa đơn + customer/booking-detail.php (DONE v18)
 
-[ ] customer/booking-detail.php — KH xem chi tiết từng đặt phòng: danh sách dịch
-                             vụ đã gọi, hóa đơn đầy đủ, trạng thái thanh toán cọc,
-                             nút in/tải PDF hóa đơn
+[x] customer/booking-detail.php — KH xem chi tiết từng đặt phòng: DV, hóa đơn đầy đủ,
+                             trạng thái cọc, điểm tích lũy, nút in PDF hóa đơn (DONE v18)
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN THẤP ───────────────────────
-[ ] staff/profile.php      — NV xem/đổi mật khẩu, cập nhật SĐT & email cá nhân
-                             (tách riêng khỏi tab profile trong staff/dashboard.php)
+[x] staff/profile.php      — NV đổi mật khẩu, cập nhật SĐT & email, xem thống kê
+                             Truy cập từ nút "Chỉnh sửa hồ sơ" trong tab Thông tin (DONE v18)
 
 [ ] forgot-password.php    — Flow quên mật khẩu: nhập email → tạo token → gửi link
                              reset qua email (cần PHPMailer hoặc PHP mail())
