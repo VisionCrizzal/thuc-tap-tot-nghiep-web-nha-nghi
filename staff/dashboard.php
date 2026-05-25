@@ -28,7 +28,7 @@ $nv = $nvRow->fetch();
 
 // ── Xử lý logout ────────────────────────────────────────────────────────────
 if (isset($_GET['logout'])) {
-    session_destroy(); header('Location: ../login.php'); exit;
+    header('Location: ../logout.php'); exit;
 }
 
 // ── Xử lý POST ──────────────────────────────────────────────────────────────

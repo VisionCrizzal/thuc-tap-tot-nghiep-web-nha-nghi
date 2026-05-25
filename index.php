@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/config/session.php';
 require_once __DIR__ . '/config/db.php';
 
 $rooms    = $pdo->query("SELECT * FROM PHONG ORDER BY FIELD(TinhTrang,'Trống','Đang dọn','Đang ở','Bảo trì'), GiaPhong")->fetchAll();
@@ -339,6 +339,36 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:h
   box-shadow:0 2px 8px rgba(29,78,216,.3)}
 .btn-primary:hover{background:var(--blue-dark);border-color:var(--blue-dark)}
 
+/* User chip — khi đã đăng nhập */
+.nav-user{position:relative;display:flex;align-items:center}
+.nav-user-chip{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;
+  border-radius:22px;background:var(--blue-pale);border:1.5px solid var(--border);
+  cursor:pointer;transition:all .2s;user-select:none}
+.nav-user-chip:hover{border-color:var(--blue-light);background:var(--blue-mid)}
+.nav-user-avatar{width:28px;height:28px;border-radius:50%;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;font-size:.75rem;
+  color:#fff;font-weight:700;flex-shrink:0}
+.nav-user-name{font-size:.78rem;font-weight:600;color:var(--blue-dark);max-width:110px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav-user-caret{font-size:.65rem;color:var(--muted);margin-left:2px;transition:transform .2s}
+.nav-user.open .nav-user-caret{transform:rotate(180deg)}
+.nav-dropdown{position:absolute;top:calc(100% + 8px);right:0;min-width:190px;
+  background:#fff;border:1.5px solid var(--border);border-radius:12px;
+  box-shadow:0 8px 28px rgba(29,78,216,.14);overflow:hidden;
+  opacity:0;transform:translateY(-6px) scale(.97);pointer-events:none;
+  transition:all .18s cubic-bezier(.34,1.56,.64,1);z-index:2000}
+.nav-user.open .nav-dropdown{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.nav-dropdown-header{padding:12px 16px 10px;border-bottom:1px solid var(--border);
+  font-size:.72rem;color:var(--muted)}
+.nav-dropdown-header strong{display:block;font-size:.84rem;color:var(--text);margin-bottom:2px}
+.nav-dropdown a,.nav-dropdown button{display:flex;align-items:center;gap:9px;
+  width:100%;padding:10px 16px;font-family:var(--font);font-size:.82rem;
+  color:var(--text);text-decoration:none;background:none;border:none;
+  cursor:pointer;transition:background .15s;text-align:left}
+.nav-dropdown a:hover,.nav-dropdown button:hover{background:var(--blue-pale);color:var(--blue)}
+.nav-dropdown .logout-btn{color:#ef4444;border-top:1px solid var(--border);margin-top:4px}
+.nav-dropdown .logout-btn:hover{background:#fff5f5;color:#dc2626}
+
 /* SLIDESHOW */
 .hero{position:relative;width:100%;height:88vh;min-height:500px;margin-top:66px;overflow:hidden}
 .slides-track{display:flex;height:100%;transition:transform .7s cubic-bezier(.4,0,.2,1)}
@@ -641,8 +671,55 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
     <li><a href="#map">Vị Trí</a></li>
   </ul>
   <div class="nav-actions">
-    <a href="login.php" class="btn-outline">Đăng Nhập</a>
-    <a href="register.php" class="btn-primary">Đăng Ký</a>
+    <?php if (isset($_SESSION['kh_id'])): ?>
+      <?php
+        $khName    = $_SESSION['kh_name'] ?? 'Khách';
+        $initials  = mb_strtoupper(mb_substr($khName, 0, 1, 'UTF-8'), 'UTF-8');
+      ?>
+      <div class="nav-user" id="navUser">
+        <div class="nav-user-chip" onclick="toggleUserMenu()">
+          <div class="nav-user-avatar"><?= htmlspecialchars($initials) ?></div>
+          <span class="nav-user-name"><?= htmlspecialchars($khName) ?></span>
+          <span class="nav-user-caret">▼</span>
+        </div>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-header">
+            <strong><?= htmlspecialchars($khName) ?></strong>
+            Khách hàng
+          </div>
+          <a href="customer/dashboard.php">🏠 Tài khoản của tôi</a>
+          <a href="customer/dashboard.php?tab=booking">🛏 Đặt phòng</a>
+          <a href="customer/dashboard.php?tab=history">📋 Lịch sử đặt phòng</a>
+          <button class="logout-btn" onclick="location.href='logout.php'">🚪 Đăng Xuất</button>
+        </div>
+      </div>
+    <?php elseif (isset($_SESSION['staff_id'])): ?>
+      <?php
+        $staffName = $_SESSION['staff_name'] ?? $_SESSION['staff_id'];
+        $staffRole = $_SESSION['staff_role'] ?? 'nhanvien';
+        $staffDash = ($staffRole === 'admin') ? 'admin/dashboard.php' : 'staff/dashboard.php';
+        $staffLabel= ($staffRole === 'admin') ? 'Quản trị viên' : 'Nhân viên';
+        $initials  = mb_strtoupper(mb_substr($staffName, 0, 1, 'UTF-8'), 'UTF-8');
+      ?>
+      <div class="nav-user" id="navUser">
+        <div class="nav-user-chip" onclick="toggleUserMenu()">
+          <div class="nav-user-avatar"><?= htmlspecialchars($initials) ?></div>
+          <span class="nav-user-name"><?= htmlspecialchars($staffName) ?></span>
+          <span class="nav-user-caret">▼</span>
+        </div>
+        <div class="nav-dropdown">
+          <div class="nav-dropdown-header">
+            <strong><?= htmlspecialchars($staffName) ?></strong>
+            <?= $staffLabel ?>
+          </div>
+          <a href="<?= $staffDash ?>">📊 Bảng điều khiển</a>
+          <button class="logout-btn" onclick="location.href='logout.php'">🚪 Đăng Xuất</button>
+        </div>
+      </div>
+    <?php else: ?>
+      <a href="login.php" class="btn-outline">Đăng Nhập</a>
+      <a href="register.php" class="btn-primary">Đăng Ký</a>
+    <?php endif; ?>
   </div>
 </nav>
 
@@ -972,9 +1049,19 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
     <div class="footer-col">
       <h4>Tài Khoản</h4>
       <ul>
-        <li><a href="login.php">Đăng Nhập KH</a></li>
-        <li><a href="login.php">Đăng Nhập</a></li>
-        <li><a href="register.php">Đăng Ký</a></li>
+        <?php if (isset($_SESSION['kh_id'])): ?>
+          <li><a href="customer/dashboard.php">👤 Tài khoản của tôi</a></li>
+          <li><a href="customer/dashboard.php?tab=booking">🛏 Đặt phòng</a></li>
+          <li><a href="logout.php">🚪 Đăng xuất</a></li>
+        <?php elseif (isset($_SESSION['staff_id'])): ?>
+          <?php $sd = ($_SESSION['staff_role']==='admin') ? 'admin/dashboard.php' : 'staff/dashboard.php'; ?>
+          <li><a href="<?= $sd ?>">📊 Bảng điều khiển</a></li>
+          <li><a href="logout.php">🚪 Đăng xuất</a></li>
+        <?php else: ?>
+          <li><a href="login.php">Đăng Nhập KH</a></li>
+          <li><a href="login.php">Đăng Nhập NV</a></li>
+          <li><a href="register.php">Đăng Ký</a></li>
+        <?php endif; ?>
         <li><a href="tel:0768466686">📞 0768.466.686</a></li>
       </ul>
     </div>
@@ -1094,6 +1181,18 @@ document.querySelectorAll('.room-card,.svc-card,.gallery-item').forEach((el,i)=>
   el.style.cssText+=`opacity:0;transform:translateY(20px);
     transition:opacity .5s ease ${i*.07}s,transform .5s ease ${i*.07}s`;
   obs.observe(el);
+});
+
+// User dropdown toggle
+function toggleUserMenu() {
+  const el = document.getElementById('navUser');
+  if (!el) return;
+  el.classList.toggle('open');
+}
+// Đóng dropdown khi click ra ngoài
+document.addEventListener('click', function(e) {
+  const el = document.getElementById('navUser');
+  if (el && !el.contains(e.target)) el.classList.remove('open');
 });
 </script>
 </body>

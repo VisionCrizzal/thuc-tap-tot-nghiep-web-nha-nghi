@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v21: booking.php + login.php ?next= redirect)
+> Cập nhật lần cuối: 25/05/2026 (v23: Fix BUG #13 — staff/dashboard.php logout centralized)
 
 ---
 
@@ -225,6 +225,8 @@ getAllServices(PDO $pdo): array
 | 19 | Dọn phòng + Lịch calendar + 404 | admin/housekeeping.php (room cards, đổi TinhTrang, staff panel) + admin/calendar.php (month grid, day detail, keyboard nav) + 404.php (branded, auto-redirect, smart back link) + cập nhật sidebar toàn bộ admin pages | v19 |
 | 20 | Quản lý khuyến mãi | admin/promotions.php — CRUD KHUYEN_MAI, toggle Đang áp dụng/Tạm dừng, computed EffStatus (Hết hạn/Chưa bắt đầu), stats 5 cards, filter tabs, loại % vs VNĐ, days-left badge, form validate, cập nhật sidebar 6 admin pages | v20 |
 | 21 | Fix dead link booking.php (BUG #11) | booking.php mới: landing page có room info + nút login/register; KH đã login → redirect thẳng vào ?tab=booking&room_type=X; login.php thêm ?next= redirect với sanitize chống open-redirect | v21 |
+| 22 | Fix index.php session + navbar user chip (BUG #12) | index.php: thay session_start() → config/session.php; navbar: user chip với avatar + dropdown (tên KH/NV, link tài khoản, đăng xuất); footer Tài Khoản đồng bộ với session | v22 |
+| 23 | Fix staff/dashboard.php logout inline (BUG #13) | Dòng 31: thay session_destroy()+header(login.php) → header(../logout.php)+exit; scan toàn project — không còn file nào dùng session_destroy() inline | v23 |
 
 ---
 
@@ -243,8 +245,8 @@ getAllServices(PDO $pdo): array
 | 9 | Admin login không vào được trang admin | login.php dùng 3 tab: nếu chọn sai tab thì báo "không có quyền" dù đúng mật khẩu | Xóa tab, dùng 1 form, tự nhận diện vai trò từ VaiTro trong TAI_KHOAN |
 | 10 | Session không persist giữa các trang — session_id() rỗng sau session_start() | phpMyAdmin cũng dùng cookie PHPSESSID trên localhost, trình duyệt lẫn lộn hai cookie, session_start() thất bại hoàn toàn | Tạo config/session.php: đổi session name → EASYHOME_SID, set cookie params rõ ràng (SameSite=Lax). Dùng file này thay vì gọi session_start() trực tiếp |
 | 11 | **Dead link booking.php** — Click "Đặt Ngay" trên card phòng ở index.php (dòng 826) → 404 | index.php trỏ đến `booking.php?room=...` nhưng file không tồn tại | ✅ **ĐÃ FIX v21** — Tạo booking.php: redirect thẳng nếu KH đã login, landing page + login/register nếu chưa |
-| 12 | **index.php dùng session_start() thay vì config/session.php** | Nếu KH đăng nhập từ index.php, session name khác → không nhận diện được KH đã đăng nhập khi sang trang khác | **CHƯA FIX** — Đổi `session_start()` → `require_once __DIR__ . '/config/session.php'` |
-| 13 | **staff/dashboard.php còn inline session_destroy() ở `?logout`** (dòng 31) | Khi user truy cập `?logout`, trang tự `session_destroy()` thay vì redirect về logout.php — bỏ qua centralized logout logic | **CHƯA FIX** — Đổi `session_destroy(); header('Location:...login.php')` → `header('Location: ../logout.php')` |
+| 12 | **index.php dùng session_start() thay vì config/session.php** | Nếu KH đăng nhập từ index.php, session name khác → không nhận diện được KH đã đăng nhập khi sang trang khác | ✅ **ĐÃ FIX v22** — Đổi `session_start()` → `require_once __DIR__ . '/config/session.php'`; thêm user chip + dropdown trong navbar; đồng bộ footer "Tài Khoản" |
+| 13 | **staff/dashboard.php còn inline session_destroy() ở `?logout`** (dòng 31) | Khi user truy cập `?logout`, trang tự `session_destroy()` thay vì redirect về logout.php — bỏ qua centralized logout logic | ✅ **ĐÃ FIX v23** — `session_destroy(); header('Location:../login.php')` → `header('Location: ../logout.php'); exit` |
 
 ---
 
@@ -280,15 +282,14 @@ getAllServices(PDO $pdo): array
     — login.php thêm ?next= redirect (sanitized), hidden input truyền qua form
     — Sau login KH thành công → về $next (tab booking) thay vì customer/dashboard.php mặc định
 
-[ ] Fix index.php dùng session_start() thay vì config/session.php (BUG #12)
-    — index.php dòng 2: session_start() → đổi thành:
-      require_once __DIR__ . '/config/session.php';
-    — Hệ quả: KH đăng nhập nhưng navbar vẫn hiện "Đăng Nhập/Đăng Ký"
-    — Sau fix: thêm logic check $_SESSION['kh_id'] trong navbar index.php
+[x] Fix index.php dùng session_start() thay vì config/session.php (BUG #12) — DONE v22
+    — index.php dòng 2: session_start() → require_once __DIR__ . '/config/session.php'
+    — Navbar: thêm user chip + dropdown menu khi KH/NV đã đăng nhập (tên, avatar chữ cái, link tài khoản, đăng xuất)
+    — Footer "Tài Khoản": hiển thị link phù hợp theo session (KH, NV/Admin, hoặc chưa đăng nhập)
 
-[ ] Fix staff/dashboard.php còn ?logout inline (BUG #13)
-    — Dòng 29-32: if (isset($_GET['logout'])) { session_destroy(); ... }
-    — Đổi thành: if (isset($_GET['logout'])) { header('Location: ../logout.php'); exit; }
+[x] Fix staff/dashboard.php còn ?logout inline (BUG #13) — DONE v23
+    — Dòng 31: session_destroy()+header('../login.php') → header('../logout.php')+exit
+    — Scan toàn project: không còn file nào dùng session_destroy() inline
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
 [ ] admin/invoices.php     — Danh sách toàn bộ hóa đơn (HOA_DON): lọc theo tháng/
