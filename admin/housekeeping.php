@@ -291,6 +291,7 @@ body{display:flex;background:var(--bg);overflow-x:hidden}
     <a href="housekeeping.php"              class="sb-nav-item active"><span class="sb-nav-icon">🧹</span><span>Dọn Phòng</span></a>
     <a href="services.php"                  class="sb-nav-item"><span class="sb-nav-icon">🛎️</span><span>Dịch Vụ</span></a>
     <a href="promotions.php"                class="sb-nav-item"><span class="sb-nav-icon">🎁</span><span>Khuyến Mãi</span></a>
+    <a href="invoices.php"                  class="sb-nav-item"><span class="sb-nav-icon">🧾</span><span>Hóa Đơn</span></a>
     <div class="sb-nav-divider"></div>
     <a href="dashboard.php?tab=staff"       class="sb-nav-item"><span class="sb-nav-icon">👥</span><span>Nhân Viên</span></a>
     <a href="accounts.php"                  class="sb-nav-item"><span class="sb-nav-icon">🔑</span><span>Tài Khoản</span></a>

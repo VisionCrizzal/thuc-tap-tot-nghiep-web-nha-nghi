@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v23: Fix BUG #13 — staff/dashboard.php logout centralized)
+> Cập nhật lần cuối: 25/05/2026 (v24: admin/invoices.php + sidebar cập nhật 8 file)
 
 ---
 
@@ -82,7 +82,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   ├── accounts.php               ✅ CRUD TAI_KHOAN + khóa/mở KH, thêm cột TrangThai KH (DONE v17)
 │   ├── services.php               ✅ CRUD dịch vụ — bảng DICH_VU (DONE)
 │   ├── promotions.php             ✅ CRUD khuyến mãi — bảng KHUYEN_MAI (DONE v20)
-│   ├── invoices.php               🔲 Danh sách hóa đơn toàn hệ thống (TODO)
+│   ├── invoices.php               ✅ Danh sách hóa đơn toàn hệ thống — stats 5 cards, filter, search, modal chi tiết, mark paid/unpaid (DONE v24)
 │   ├── reports.php                🔲 Báo cáo doanh thu chi tiết + xuất CSV (TODO)
 │   ├── housekeeping.php           ✅ Phân công & theo dõi dọn phòng (DONE v19)
 │   └── calendar.php               ✅ Lịch đặt phòng dạng calendar tháng (DONE v19)
@@ -227,6 +227,7 @@ getAllServices(PDO $pdo): array
 | 21 | Fix dead link booking.php (BUG #11) | booking.php mới: landing page có room info + nút login/register; KH đã login → redirect thẳng vào ?tab=booking&room_type=X; login.php thêm ?next= redirect với sanitize chống open-redirect | v21 |
 | 22 | Fix index.php session + navbar user chip (BUG #12) | index.php: thay session_start() → config/session.php; navbar: user chip với avatar + dropdown (tên KH/NV, link tài khoản, đăng xuất); footer Tài Khoản đồng bộ với session | v22 |
 | 23 | Fix staff/dashboard.php logout inline (BUG #13) | Dòng 31: thay session_destroy()+header(login.php) → header(../logout.php)+exit; scan toàn project — không còn file nào dùng session_destroy() inline | v23 |
+| 24 | admin/invoices.php — Quản lý hóa đơn | Stats 5 cards, filter tabs+search+tháng/năm/NV, table HOA_DON với JOINs, modal chi tiết (bảng tiền+DV), mark paid/unpaid PRG, in PDF, sidebar thêm 🧾 Hóa Đơn vào 8 admin pages | v24 |
 
 ---
 
@@ -292,9 +293,10 @@ getAllServices(PDO $pdo): array
     — Scan toàn project: không còn file nào dùng session_destroy() inline
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
-[ ] admin/invoices.php     — Danh sách toàn bộ hóa đơn (HOA_DON): lọc theo tháng/
-                             trạng thái/nhân viên, tìm kiếm, xem lại từng hóa đơn,
-                             tổng hợp tiền đã thu/chưa thu
+[x] admin/invoices.php     — DONE v24: stats 5 cards (tổng/đã TT/chưa TT/đã thu/chưa thu),
+                             filter tabs + search + tháng/năm/NV, table đầy đủ, modal chi tiết
+                             (thông tin KH + phòng + bảng tiền + dịch vụ), mark paid/unpaid,
+                             in hóa đơn (window.print), sidebar cập nhật 8 admin pages
 
 [ ] admin/reports.php      — Báo cáo doanh thu: theo tháng/quý/năm, biểu đồ
                              Chart.js (line chart doanh thu, bar chart công suất),

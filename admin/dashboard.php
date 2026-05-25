@@ -586,6 +586,10 @@ select.form-ctrl{cursor:pointer}
       <span class="sb-nav-icon">🎁</span>
       <span>Khuyến Mãi</span>
     </a>
+    <a href="invoices.php" class="sb-nav-item">
+      <span class="sb-nav-icon">🧾</span>
+      <span>Hóa Đơn</span>
+    </a>
     <div class="sb-nav-divider"></div>
     <a href="accounts.php" class="sb-nav-item">
       <span class="sb-nav-icon">🔑</span>
