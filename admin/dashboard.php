@@ -587,6 +587,7 @@ select.form-ctrl{cursor:pointer}
       <span>Khuyến Mãi</span>
     </a>
     <a href="invoices.php" class="sb-nav-item">
+    <a href="reports.php"                   class="sb-nav-item"><span class="sb-nav-icon">📈</span><span>Báo Cáo</span></a>
       <span class="sb-nav-icon">🧾</span>
       <span>Hóa Đơn</span>
     </a>

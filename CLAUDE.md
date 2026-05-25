@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v24: admin/invoices.php + sidebar cập nhật 8 file)
+> Cập nhật lần cuối: 25/05/2026 (v25: admin/reports.php + sidebar cập nhật 9 file)
 
 ---
 
@@ -83,7 +83,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   ├── services.php               ✅ CRUD dịch vụ — bảng DICH_VU (DONE)
 │   ├── promotions.php             ✅ CRUD khuyến mãi — bảng KHUYEN_MAI (DONE v20)
 │   ├── invoices.php               ✅ Danh sách hóa đơn toàn hệ thống — stats 5 cards, filter, search, modal chi tiết, mark paid/unpaid (DONE v24)
-│   ├── reports.php                🔲 Báo cáo doanh thu chi tiết + xuất CSV (TODO)
+│   ├── reports.php                ✅ Báo cáo doanh thu: stats, Chart.js (line+bar), top 5 phòng/DV/NV, xuất CSV (DONE v25)
 │   ├── housekeeping.php           ✅ Phân công & theo dõi dọn phòng (DONE v19)
 │   └── calendar.php               ✅ Lịch đặt phòng dạng calendar tháng (DONE v19)
 │
@@ -228,6 +228,7 @@ getAllServices(PDO $pdo): array
 | 22 | Fix index.php session + navbar user chip (BUG #12) | index.php: thay session_start() → config/session.php; navbar: user chip với avatar + dropdown (tên KH/NV, link tài khoản, đăng xuất); footer Tài Khoản đồng bộ với session | v22 |
 | 23 | Fix staff/dashboard.php logout inline (BUG #13) | Dòng 31: thay session_destroy()+header(login.php) → header(../logout.php)+exit; scan toàn project — không còn file nào dùng session_destroy() inline | v23 |
 | 24 | admin/invoices.php — Quản lý hóa đơn | Stats 5 cards, filter tabs+search+tháng/năm/NV, table HOA_DON với JOINs, modal chi tiết (bảng tiền+DV), mark paid/unpaid PRG, in PDF, sidebar thêm 🧾 Hóa Đơn vào 8 admin pages | v24 |
+| 25 | admin/reports.php — Báo cáo doanh thu | Stats 4 cards, bộ lọc năm/tháng/quý, Chart.js line chart DT + bar chart lượt đặt phòng, top 5 phòng/DV/NV, bảng chi tiết 12 tháng có progress bar, xuất CSV (BOM UTF-8), in báo cáo, sidebar thêm 📈 Báo Cáo vào 8 admin pages | v25 |
 
 ---
 
@@ -298,9 +299,11 @@ getAllServices(PDO $pdo): array
                              (thông tin KH + phòng + bảng tiền + dịch vụ), mark paid/unpaid,
                              in hóa đơn (window.print), sidebar cập nhật 8 admin pages
 
-[ ] admin/reports.php      — Báo cáo doanh thu: theo tháng/quý/năm, biểu đồ
-                             Chart.js (line chart doanh thu, bar chart công suất),
-                             top phòng/dịch vụ/NV, xuất báo cáo CSV
+[x] admin/reports.php      — DONE v25: stats 4 cards (tổng DT/HĐ/lượt đặt/DT DV),
+                             filter năm + toggle tháng/quý, Chart.js line chart DT + bar chart bookings,
+                             top 5 phòng/DV/NV với rank badge vàng/bạc/đồng,
+                             bảng 12 tháng có progress bar inline, xuất CSV (UTF-8 BOM), in báo cáo,
+                             sidebar 📈 Báo Cáo thêm vào 8 admin pages còn lại
 
 [ ] customer/profile.php   — KH đổi mật khẩu + cập nhật HoTen/SĐT/Email/CCCD/DiaChi
                              (tương tự staff/profile.php đã làm v18)
@@ -312,10 +315,7 @@ getAllServices(PDO $pdo): array
                              (b) Edit thông tin NV: HoTen, SĐT, Email, ChucVu, NgayVaoLam (bảng NHAN_VIEN)
                              Hiện chỉ có: CRUD TAI_KHOAN + khóa/mở KH
 
-[ ] Thêm invoices.php + reports.php vào sidebar tất cả admin pages
-    — Khi tạo 2 trang trên cần cập nhật sidebar 8 file:
-      admin/dashboard.php, rooms.php, accounts.php, services.php,
-      promotions.php, housekeeping.php, calendar.php + 2 trang mới
+[x] Thêm invoices.php + reports.php vào sidebar tất cả admin pages — DONE v24+v25
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN THẤP ───────────────────────
 [ ] forgot-password.php    — Flow quên mật khẩu: nhập email → tạo token → gửi link
