@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v20: promotions.php | audit toàn dự án)
+> Cập nhật lần cuối: 25/05/2026 (v21: booking.php + login.php ?next= redirect)
 
 ---
 
@@ -56,6 +56,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 ├── register.php                   ✅ Đăng ký khách hàng (DONE)
 ├── rooms.php                      ✅ Trang tìm kiếm & kết quả phòng trống (DONE)
 ├── logout.php                     ✅ Dedicated logout — session_destroy() + redirect (DONE v17)
+├── booking.php                    ✅ Trung gian đặt phòng: redirect KH đã đăng nhập, landing page nếu chưa (DONE v21)
 ├── forgot-password.php            🔲 Quên mật khẩu (TODO)
 ├── 404.php                        ✅ Custom error page — branded, auto-redirect 15s (DONE v19)
 │
@@ -223,6 +224,7 @@ getAllServices(PDO $pdo): array
 | 18 | Tích điểm + Chi tiết đặt phòng + Hồ sơ NV | staff/checkout.php cộng TichDiem (1.000đ=1đ) + customer/booking-detail.php (DV, hóa đơn, điểm, in PDF) + staff/profile.php (đổi MK, SĐT, email) + customer/dashboard.php (nút "Chi tiết", fix logout) | v18 |
 | 19 | Dọn phòng + Lịch calendar + 404 | admin/housekeeping.php (room cards, đổi TinhTrang, staff panel) + admin/calendar.php (month grid, day detail, keyboard nav) + 404.php (branded, auto-redirect, smart back link) + cập nhật sidebar toàn bộ admin pages | v19 |
 | 20 | Quản lý khuyến mãi | admin/promotions.php — CRUD KHUYEN_MAI, toggle Đang áp dụng/Tạm dừng, computed EffStatus (Hết hạn/Chưa bắt đầu), stats 5 cards, filter tabs, loại % vs VNĐ, days-left badge, form validate, cập nhật sidebar 6 admin pages | v20 |
+| 21 | Fix dead link booking.php (BUG #11) | booking.php mới: landing page có room info + nút login/register; KH đã login → redirect thẳng vào ?tab=booking&room_type=X; login.php thêm ?next= redirect với sanitize chống open-redirect | v21 |
 
 ---
 
@@ -240,7 +242,7 @@ getAllServices(PDO $pdo): array
 | 8 | NVARCHAR không tồn tại MySQL | MySQL không hỗ trợ NVARCHAR native (alias VARCHAR với utf8mb4) | Đã dùng utf8mb4 ở database level, hoạt động bình thường |
 | 9 | Admin login không vào được trang admin | login.php dùng 3 tab: nếu chọn sai tab thì báo "không có quyền" dù đúng mật khẩu | Xóa tab, dùng 1 form, tự nhận diện vai trò từ VaiTro trong TAI_KHOAN |
 | 10 | Session không persist giữa các trang — session_id() rỗng sau session_start() | phpMyAdmin cũng dùng cookie PHPSESSID trên localhost, trình duyệt lẫn lộn hai cookie, session_start() thất bại hoàn toàn | Tạo config/session.php: đổi session name → EASYHOME_SID, set cookie params rõ ràng (SameSite=Lax). Dùng file này thay vì gọi session_start() trực tiếp |
-| 11 | **Dead link booking.php** — Click "Đặt Ngay" trên card phòng ở index.php (dòng 826) → 404 | index.php trỏ đến `booking.php?room=...` nhưng file không tồn tại | **CHƯA FIX** — Cần đổi link thành `customer/dashboard.php?tab=booking` hoặc tạo booking.php làm trang trung gian |
+| 11 | **Dead link booking.php** — Click "Đặt Ngay" trên card phòng ở index.php (dòng 826) → 404 | index.php trỏ đến `booking.php?room=...` nhưng file không tồn tại | ✅ **ĐÃ FIX v21** — Tạo booking.php: redirect thẳng nếu KH đã login, landing page + login/register nếu chưa |
 | 12 | **index.php dùng session_start() thay vì config/session.php** | Nếu KH đăng nhập từ index.php, session name khác → không nhận diện được KH đã đăng nhập khi sang trang khác | **CHƯA FIX** — Đổi `session_start()` → `require_once __DIR__ . '/config/session.php'` |
 | 13 | **staff/dashboard.php còn inline session_destroy() ở `?logout`** (dòng 31) | Khi user truy cập `?logout`, trang tự `session_destroy()` thay vì redirect về logout.php — bỏ qua centralized logout logic | **CHƯA FIX** — Đổi `session_destroy(); header('Location:...login.php')` → `header('Location: ../logout.php')` |
 
@@ -272,12 +274,11 @@ getAllServices(PDO $pdo): array
 [x] 404.php                — Branded 404, auto-redirect 15s, smart back link (DONE v19)
 
 ─────────────── CẦN LÀM — ƯU TIÊN CAO (BUG / BROKEN) ───────────────
-[ ] Fix dead link booking.php trong index.php (BUG #11)
-    — index.php dòng 826: <a href="booking.php?room=..."> → file KHÔNG TỒN TẠI → 404
-    — Giải pháp A (đơn giản): Đổi link thành rooms.php?type={LoaiPhong}
-    — Giải pháp B (tốt hơn): Tạo booking.php làm trang đặt phòng nhanh:
-      nếu chưa đăng nhập → redirect login.php?redirect=booking&room=X
-      nếu đã đăng nhập → redirect customer/dashboard.php?tab=booking&room=X
+[x] Fix dead link booking.php trong index.php (BUG #11) — DONE v21
+    — booking.php mới: KH đã login → redirect customer/dashboard.php?tab=booking&room_type=X
+    — Chưa login → landing page: hiện thông tin phòng + nút Đăng Nhập / Đăng Ký
+    — login.php thêm ?next= redirect (sanitized), hidden input truyền qua form
+    — Sau login KH thành công → về $next (tab booking) thay vì customer/dashboard.php mặc định
 
 [ ] Fix index.php dùng session_start() thay vì config/session.php (BUG #12)
     — index.php dòng 2: session_start() → đổi thành:

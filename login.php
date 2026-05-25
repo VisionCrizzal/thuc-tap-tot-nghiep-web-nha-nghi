@@ -5,6 +5,19 @@ require_once __DIR__ . '/config/db.php';
 
 $error = '';
 
+// ── ?next= redirect sau khi đăng nhập (chỉ cho phép đường dẫn nội bộ) ──────
+function sanitizeNext(string $next): string {
+    // Chỉ chấp nhận relative path bắt đầu bằng customer/ hoặc không có scheme
+    $next = trim($next);
+    if ($next === '') return '';
+    // Từ chối bất kỳ URL có scheme (http:, https:, //, ...)
+    if (preg_match('#^[a-z]+:|^//#i', $next)) return '';
+    // Từ chối path thoát ra ngoài thư mục project
+    if (str_contains($next, '..')) return '';
+    return $next;
+}
+$next = sanitizeNext($_GET['next'] ?? $_POST['next'] ?? '');
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
@@ -26,7 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['kh_id']   = $kh['MaKH'];
                 $_SESSION['kh_name'] = $kh['HoTen'];
                 $_SESSION['kh_role'] = 'khachhang';
-                header('Location: customer/dashboard.php');
+                // Nếu có ?next= hợp lệ thì redirect về đó, ngược lại về dashboard
+                $dest = ($next !== '') ? $next : 'customer/dashboard.php';
+                header('Location: ' . $dest);
                 exit;
             }
         }
@@ -46,6 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
     }
 }
+
+// Detect booking context (từ booking.php)
+$isBookingContext = ($next !== '' && str_starts_with($next, 'customer/dashboard.php?tab=booking'));
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -198,21 +216,33 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
 
     <!-- HEADER -->
     <div class="card-header">
-      <div class="header-icon">🔑</div>
+      <div class="header-icon"><?= $isBookingContext ? '🏨' : '🔑' ?></div>
       <div>
-        <div class="header-title">Đăng Nhập</div>
-        <div class="header-desc">Nhập thông tin tài khoản của bạn</div>
+        <div class="header-title"><?= $isBookingContext ? 'Đăng Nhập Để Đặt Phòng' : 'Đăng Nhập' ?></div>
+        <div class="header-desc">
+          <?= $isBookingContext ? 'Sau khi đăng nhập bạn sẽ được chuyển thẳng đến trang đặt phòng' : 'Nhập thông tin tài khoản của bạn' ?>
+        </div>
       </div>
     </div>
 
     <!-- BODY -->
     <div class="card-body">
 
+      <?php if ($isBookingContext): ?>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--blue-pale);
+        border:1.5px solid var(--blue-mid);border-radius:9px;padding:11px 14px;margin-bottom:20px;font-size:.84rem;color:var(--blue-dark)">
+        🏨 <span>Bạn đang đặt phòng — đăng nhập tài khoản khách hàng để tiếp tục.</span>
+      </div>
+      <?php endif; ?>
+
       <?php if ($error): ?>
       <div class="alert-error">⚠ <?= htmlspecialchars($error) ?></div>
       <?php endif; ?>
 
       <form method="POST">
+        <?php if ($next !== ''): ?>
+        <input type="hidden" name="next" value="<?= htmlspecialchars($next) ?>">
+        <?php endif; ?>
 
         <div class="form-group">
           <label class="form-label">Tên Đăng Nhập</label>
