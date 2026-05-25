@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v20: promotions.php)
+> Cập nhật lần cuối: 25/05/2026 (v20: promotions.php | audit toàn dự án)
 
 ---
 
@@ -69,7 +69,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   └── promo1-4.jpg               4 ảnh gallery
 │
 ├── staff/
-│   ├── login.php                  ✅ Đăng nhập NV (DONE)
+│   ├── login.php                  ⚠️  File cũ (dùng session_start trực tiếp) — không link từ đâu, nên redirect về login.php
 │   ├── dashboard.php              ✅ Quản lý đặt phòng + sơ đồ phòng + thông tin NV (DONE)
 │   ├── checkin.php                ✅ Check-in form: DV, KM, thu cọc đa phương thức (DONE)
 │   ├── checkout.php               ✅ Check-out + in hóa đơn PDF (DONE)
@@ -87,7 +87,8 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │   └── calendar.php               ✅ Lịch đặt phòng dạng calendar tháng (DONE v19)
 │
 ├── customer/
-│   ├── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử + KM (DONE)
+│   ├── dashboard.php              ✅ Trang KH: profile (read-only), đặt phòng, lịch sử + KM (DONE)
+│   ├── profile.php                🔲 KH đổi mật khẩu + cập nhật SĐT/email/địa chỉ (TODO)
 │   └── booking-detail.php         ✅ Chi tiết đặt phòng: DV, hóa đơn, cọc, điểm, in PDF (DONE v18)
 │
 ├── hotel_db.sql                   ✅ Schema đầy đủ + data mẫu
@@ -239,6 +240,9 @@ getAllServices(PDO $pdo): array
 | 8 | NVARCHAR không tồn tại MySQL | MySQL không hỗ trợ NVARCHAR native (alias VARCHAR với utf8mb4) | Đã dùng utf8mb4 ở database level, hoạt động bình thường |
 | 9 | Admin login không vào được trang admin | login.php dùng 3 tab: nếu chọn sai tab thì báo "không có quyền" dù đúng mật khẩu | Xóa tab, dùng 1 form, tự nhận diện vai trò từ VaiTro trong TAI_KHOAN |
 | 10 | Session không persist giữa các trang — session_id() rỗng sau session_start() | phpMyAdmin cũng dùng cookie PHPSESSID trên localhost, trình duyệt lẫn lộn hai cookie, session_start() thất bại hoàn toàn | Tạo config/session.php: đổi session name → EASYHOME_SID, set cookie params rõ ràng (SameSite=Lax). Dùng file này thay vì gọi session_start() trực tiếp |
+| 11 | **Dead link booking.php** — Click "Đặt Ngay" trên card phòng ở index.php (dòng 826) → 404 | index.php trỏ đến `booking.php?room=...` nhưng file không tồn tại | **CHƯA FIX** — Cần đổi link thành `customer/dashboard.php?tab=booking` hoặc tạo booking.php làm trang trung gian |
+| 12 | **index.php dùng session_start() thay vì config/session.php** | Nếu KH đăng nhập từ index.php, session name khác → không nhận diện được KH đã đăng nhập khi sang trang khác | **CHƯA FIX** — Đổi `session_start()` → `require_once __DIR__ . '/config/session.php'` |
+| 13 | **staff/dashboard.php còn inline session_destroy() ở `?logout`** (dòng 31) | Khi user truy cập `?logout`, trang tự `session_destroy()` thay vì redirect về logout.php — bỏ qua centralized logout logic | **CHƯA FIX** — Đổi `session_destroy(); header('Location:...login.php')` → `header('Location: ../logout.php')` |
 
 ---
 
@@ -256,23 +260,34 @@ getAllServices(PDO $pdo): array
 [x] staff/checkout.php     — Check-out + in hóa đơn PDF (DONE v15)
 [x] Khuyến mãi trong booking — auto-detect + mã thủ công (DONE v15)
 [x] In hóa đơn PDF         — window.print() + @media print CSS (DONE v15)
-
-──────────────────────── CẦN LÀM — ƯU TIÊN CAO ────────────────────────
 [x] logout.php             — Dedicated logout: session_destroy() + redirect (DONE v17)
-                             ✅ Fix: tất cả admin/staff pages giờ trỏ về ../logout.php
+[x] admin/accounts.php     — CRUD TAI_KHOAN (reset MK NV, khóa/mở KH, tạo TK NV) (DONE v17)
+[x] admin/services.php     — CRUD dịch vụ, toggle trạng thái, stat cards (DONE v16)
+[x] admin/promotions.php   — CRUD khuyến mãi, EffStatus, stats, filter tabs (DONE v20)
+[x] Tích điểm KH (TichDiem) — Cộng điểm checkout + hiển thị trong hóa đơn (DONE v18)
+[x] customer/booking-detail.php — Chi tiết đặt phòng: DV, hóa đơn, cọc, điểm, PDF (DONE v18)
+[x] staff/profile.php      — NV đổi MK, cập nhật SĐT & email (DONE v18)
+[x] admin/housekeeping.php — Room cards, đổi TinhTrang, staff panel (DONE v19)
+[x] admin/calendar.php     — Month grid, count đặt phòng, day detail, keyboard nav (DONE v19)
+[x] 404.php                — Branded 404, auto-redirect 15s, smart back link (DONE v19)
 
-[x] admin/accounts.php     — CRUD TAI_KHOAN (reset mật khẩu NV, khóa/mở KH,
-                             tạo tài khoản NV mới) (DONE v17)
-                             ✅ KHACH_HANG.TrangThai tự động thêm khi trang load lần đầu
-                             ✅ login.php check TrangThai KH trước khi cho vào
+─────────────── CẦN LÀM — ƯU TIÊN CAO (BUG / BROKEN) ───────────────
+[ ] Fix dead link booking.php trong index.php (BUG #11)
+    — index.php dòng 826: <a href="booking.php?room=..."> → file KHÔNG TỒN TẠI → 404
+    — Giải pháp A (đơn giản): Đổi link thành rooms.php?type={LoaiPhong}
+    — Giải pháp B (tốt hơn): Tạo booking.php làm trang đặt phòng nhanh:
+      nếu chưa đăng nhập → redirect login.php?redirect=booking&room=X
+      nếu đã đăng nhập → redirect customer/dashboard.php?tab=booking&room=X
 
-[x] admin/services.php     — CRUD dịch vụ (bảng DICH_VU): thêm/sửa/xóa,
-                             đổi trạng thái Khả dụng/Ngừng, emoji picker, preview ảnh,
-                             thống kê lượt dùng & doanh thu DV (DONE v16)
+[ ] Fix index.php dùng session_start() thay vì config/session.php (BUG #12)
+    — index.php dòng 2: session_start() → đổi thành:
+      require_once __DIR__ . '/config/session.php';
+    — Hệ quả: KH đăng nhập nhưng navbar vẫn hiện "Đăng Nhập/Đăng Ký"
+    — Sau fix: thêm logic check $_SESSION['kh_id'] trong navbar index.php
 
-[x] admin/promotions.php   — CRUD khuyến mãi (bảng KHUYEN_MAI): thêm/sửa/xóa,
-                             kích hoạt/vô hiệu hóa, computed EffStatus (Hết hạn/Chưa bắt đầu),
-                             stats 5 cards, filter 4 tabs, loại %/VNĐ, days-left badge (DONE v20)
+[ ] Fix staff/dashboard.php còn ?logout inline (BUG #13)
+    — Dòng 29-32: if (isset($_GET['logout'])) { session_destroy(); ... }
+    — Đổi thành: if (isset($_GET['logout'])) { header('Location: ../logout.php'); exit; }
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN TRUNG ──────────────────────
 [ ] admin/invoices.php     — Danh sách toàn bộ hóa đơn (HOA_DON): lọc theo tháng/
@@ -283,33 +298,46 @@ getAllServices(PDO $pdo): array
                              Chart.js (line chart doanh thu, bar chart công suất),
                              top phòng/dịch vụ/NV, xuất báo cáo CSV
 
-[x] Tích điểm KH (TichDiem) — Cộng điểm sau checkout (1.000đ=1đ) trong staff/checkout.php
-                             Hiển thị điểm trong hóa đơn + customer/booking-detail.php (DONE v18)
+[ ] customer/profile.php   — KH đổi mật khẩu + cập nhật HoTen/SĐT/Email/CCCD/DiaChi
+                             (tương tự staff/profile.php đã làm v18)
+                             Hiện tại tab Profile trong customer/dashboard.php chỉ READ-ONLY
+                             Thêm nút "Chỉnh sửa" → form edit hoặc trang riêng customer/profile.php
 
-[x] customer/booking-detail.php — KH xem chi tiết từng đặt phòng: DV, hóa đơn đầy đủ,
-                             trạng thái cọc, điểm tích lũy, nút in PDF hóa đơn (DONE v18)
+[ ] admin/accounts.php     — Bổ sung 2 chức năng đang thiếu:
+                             (a) Edit thông tin KH: HoTen, SĐT, Email, CCCD, DiaChi (bảng KHACH_HANG)
+                             (b) Edit thông tin NV: HoTen, SĐT, Email, ChucVu, NgayVaoLam (bảng NHAN_VIEN)
+                             Hiện chỉ có: CRUD TAI_KHOAN + khóa/mở KH
+
+[ ] Thêm invoices.php + reports.php vào sidebar tất cả admin pages
+    — Khi tạo 2 trang trên cần cập nhật sidebar 8 file:
+      admin/dashboard.php, rooms.php, accounts.php, services.php,
+      promotions.php, housekeeping.php, calendar.php + 2 trang mới
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN THẤP ───────────────────────
-[x] staff/profile.php      — NV đổi mật khẩu, cập nhật SĐT & email, xem thống kê
-                             Truy cập từ nút "Chỉnh sửa hồ sơ" trong tab Thông tin (DONE v18)
-
 [ ] forgot-password.php    — Flow quên mật khẩu: nhập email → tạo token → gửi link
                              reset qua email (cần PHPMailer hoặc PHP mail())
 
-[x] admin/housekeeping.php — Room cards theo TinhTrang, đổi trạng thái nhanh,
-                             staff panel danh sách NV trực ca (DONE v19)
+[ ] admin/rooms.php        — Upload ảnh phòng: thay text input HinhAnh bằng file upload
+                             + lưu vào assets/images/rooms/ + hiển thị preview
 
-[x] admin/calendar.php     — Month grid PHP, mỗi ô hiển thị count đặt phòng + dots màu,
-                             chọn ngày xem detail, navigate tháng, keyboard arrows (DONE v19)
+[ ] rooms.php + index.php  — Hiển thị ảnh thật phòng (HinhAnh từ DB) trong room cards
+                             Hiện tại chỉ dùng SVG giường illustration, không có ảnh thật
 
-[x] 404.php / error.php    — Branded 404, số lớn animate, smart back link theo role,
-                             auto-redirect 15s, cancel on user interaction (DONE v19)
+[ ] index.php navbar       — Sau khi fix session: hiển thị "Xin chào [Tên]" + dropdown
+                             thay vì "Đăng Nhập/Đăng Ký" khi KH đã đăng nhập
+
+[ ] staff/login.php        — File cũ (v1), không được link từ đâu, dùng session_start()
+                             thẳng. Nên đổi toàn bộ thành redirect về login.php:
+                             header('Location: ../login.php'); exit;
 
 [ ] Email xác nhận         — PHPMailer: gửi email xác nhận ngay khi KH đặt phòng
                              thành công + email nhắc nhở check-in 1 ngày trước
 
 [ ] Export CSV/Excel       — Xuất danh sách đặt phòng, doanh thu từ admin
                              (PHP fputcsv cho CSV, PhpSpreadsheet cho Excel .xlsx)
+
+[ ] Tìm kiếm + phân trang  — Admin/staff booking list: thêm search theo tên KH/mã phòng/ngày
+                             + pagination khi dữ liệu lớn (hiện load toàn bộ, không filter)
 ```
 
 ---
