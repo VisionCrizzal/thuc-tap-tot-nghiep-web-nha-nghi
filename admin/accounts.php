@@ -17,10 +17,12 @@ try {
     }
 } catch (Exception $e) { /* bỏ qua */ }
 
-$tab     = $_GET['tab']  ?? 'staff';
-$editId  = $_GET['id']   ?? '';
-$msg     = '';
-$msgType = 'success';
+$tab      = $_GET['tab']    ?? 'staff';
+$editId   = $_GET['id']     ?? '';
+$editKhId = $_GET['kh_id']  ?? '';
+$editNvId = $_GET['nv_id']  ?? '';
+$msg      = '';
+$msgType  = 'success';
 
 // ═══════════════════════════════════════════════════════════════════
 //  POST HANDLERS
@@ -148,9 +150,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tab = 'customers';
     }
 
+    // ── Sửa thông tin KH ─────────────────────────────────────────
+    elseif ($action === 'edit_kh') {
+        $maKH   = trim($_POST['ma_kh']   ?? '');
+        $hoTen  = trim($_POST['ho_ten']  ?? '');
+        $sdt    = trim($_POST['sdt']     ?? '');
+        $email  = trim($_POST['email']   ?? '');
+        $cccd   = trim($_POST['cccd']    ?? '');
+        $diaChi = trim($_POST['dia_chi'] ?? '');
+        if (!$maKH || !$hoTen) {
+            $msg = "Vui lòng nhập Họ tên khách hàng.";
+            $msgType = 'error'; $tab = 'edit_kh'; $editKhId = $maKH;
+        } else {
+            $pdo->prepare("UPDATE KHACH_HANG SET HoTen=?,SoDienThoai=?,Email=?,CCCD=?,DiaChi=? WHERE MaKH=?")
+                ->execute([$hoTen, $sdt ?: null, $email ?: null, $cccd ?: null, $diaChi ?: null, $maKH]);
+            $msg = "Đã cập nhật thông tin khách hàng '$hoTen'.";
+            $tab = 'customers';
+        }
+    }
+
+    // ── Sửa thông tin NV ─────────────────────────────────────────
+    elseif ($action === 'edit_nv') {
+        $maNV       = trim($_POST['ma_nv']         ?? '');
+        $hoTen      = trim($_POST['ho_ten']        ?? '');
+        $sdt        = trim($_POST['sdt']           ?? '');
+        $email      = trim($_POST['email']         ?? '');
+        $chucVu     = trim($_POST['chuc_vu']       ?? 'Lễ tân');
+        $ngayVaoLam = trim($_POST['ngay_vao_lam']  ?? '');
+        $trangThaiNV = trim($_POST['trang_thai_nv'] ?? 'Đang làm việc');
+        if (!$maNV || !$hoTen) {
+            $msg = "Vui lòng nhập Họ tên nhân viên.";
+            $msgType = 'error'; $tab = 'edit_nv'; $editNvId = $maNV;
+        } else {
+            $chucVu      = in_array($chucVu, ['Lễ tân','Quản lý']) ? $chucVu : 'Lễ tân';
+            $trangThaiNV = in_array($trangThaiNV, ['Đang làm việc','Ngừng hoạt động']) ? $trangThaiNV : 'Đang làm việc';
+            $pdo->prepare("UPDATE NHAN_VIEN SET HoTen=?,SoDienThoai=?,Email=?,ChucVu=?,NgayVaoLam=?,TrangThai=? WHERE MaNV=?")
+                ->execute([$hoTen, $sdt ?: null, $email ?: null, $chucVu, $ngayVaoLam ?: null, $trangThaiNV, $maNV]);
+            $msg = "Đã cập nhật thông tin nhân viên '$hoTen'.";
+            $tab = 'staff'; $editNvId = '';
+        }
+    }
+
     // PRG redirect
     header("Location: accounts.php?tab=$tab"
-        . ($editId ? "&id=".urlencode($editId) : "")
+        . ($editId   ? "&id=".urlencode($editId)       : "")
+        . ($editKhId ? "&kh_id=".urlencode($editKhId)  : "")
+        . ($editNvId ? "&nv_id=".urlencode($editNvId)  : "")
         . "&msg=" . urlencode($msg)
         . "&mtype=$msgType");
     exit;
@@ -205,6 +250,24 @@ if ($tab === 'edit' && $editId) {
     if (!$editData) { $tab = 'staff'; $editId = ''; }
 }
 
+// Edit KH data
+$editKhData = null;
+if ($tab === 'edit_kh' && $editKhId) {
+    $stmtKhE = $pdo->prepare("SELECT * FROM KHACH_HANG WHERE MaKH = :id");
+    $stmtKhE->execute([':id' => $editKhId]);
+    $editKhData = $stmtKhE->fetch();
+    if (!$editKhData) { $tab = 'customers'; $editKhId = ''; }
+}
+
+// Edit NV data
+$editNvData = null;
+if ($tab === 'edit_nv' && $editNvId) {
+    $stmtNvE = $pdo->prepare("SELECT * FROM NHAN_VIEN WHERE MaNV = :id");
+    $stmtNvE->execute([':id' => $editNvId]);
+    $editNvData = $stmtNvE->fetch();
+    if (!$editNvData) { $tab = 'staff'; $editNvId = ''; }
+}
+
 // Nhân viên đang làm để gán tài khoản
 $allNV = $pdo->query("
     SELECT nv.MaNV, nv.HoTen, nv.ChucVu,
@@ -227,7 +290,7 @@ $stats = [
 // ═══════════════════════════════════════════════════════════════════
 //  HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════
-function esc($v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
+function esc(mixed $v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
 
 function statusBadge(string $s): string {
     if ($s === 'Hoạt động') return "<span class='badge badge-active'>✓ Hoạt động</span>";
@@ -241,8 +304,7 @@ function roleBadge(string $r): string {
 function fmtDate(?string $d): string {
     if (!$d) return '<span style="color:#94a3b8">—</span>';
     $ts = strtotime($d);
-    if (!$ts) return esc($d);
-    return date('d/m/Y H:i', $ts);
+    return ($ts !== false) ? date('d/m/Y H:i', $ts) : esc($d);
 }
 ?>
 <!DOCTYPE html>
@@ -462,7 +524,6 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
     <div class="sb-nav-divider"></div>
     <a href="dashboard.php?tab=staff"       class="sb-nav-item"><span class="sb-nav-icon">👥</span><span>Nhân Viên</span></a>
     <a href="accounts.php"                  class="sb-nav-item active"><span class="sb-nav-icon">🔑</span><span>Tài Khoản</span></a>
-    <a href="dashboard.php?tab=report"      class="sb-nav-item"><span class="sb-nav-icon">📈</span><span>Báo Cáo</span></a>
   </nav>
   <div class="sb-footer">
     <a href="../logout.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
@@ -529,7 +590,13 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
       <a href="accounts.php?tab=customers" class="ptab <?= $tab==='customers' ? 'active' : '' ?>">🧑‍💼 Tài Khoản Khách Hàng</a>
       <a href="accounts.php?tab=add"       class="ptab <?= $tab==='add'       ? 'active' : '' ?>">➕ Thêm Tài Khoản</a>
       <?php if ($editData): ?>
-      <a href="accounts.php?tab=edit&id=<?= esc($editId) ?>" class="ptab ptab-edit <?= $tab==='edit' ? 'active' : '' ?>">✏️ Sửa: <?= esc($editId) ?></a>
+      <a href="accounts.php?tab=edit&id=<?= esc($editId) ?>" class="ptab ptab-edit <?= $tab==='edit' ? 'active' : '' ?>">✏️ Sửa TK: <?= esc($editId) ?></a>
+      <?php endif; ?>
+      <?php if ($editKhData): ?>
+      <a href="accounts.php?tab=edit_kh&kh_id=<?= esc($editKhId) ?>" class="ptab ptab-edit <?= $tab==='edit_kh' ? 'active' : '' ?>">✏️ KH: <?= esc(mb_substr($editKhData['HoTen'],0,14)) ?></a>
+      <?php endif; ?>
+      <?php if ($editNvData): ?>
+      <a href="accounts.php?tab=edit_nv&nv_id=<?= esc($editNvId) ?>" class="ptab ptab-edit <?= $tab==='edit_nv' ? 'active' : '' ?>">✏️ NV: <?= esc(mb_substr($editNvData['HoTen'],0,14)) ?></a>
       <?php endif; ?>
     </div>
 
@@ -610,7 +677,10 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
             <td style="font-size:.8rem;color:var(--muted)"><?= fmtDate($acc['LanDangNhapCuoi']) ?></td>
             <td>
               <div class="tbl-actions" style="justify-content:center">
-                <a href="accounts.php?tab=edit&id=<?= esc($acc['TenTK']) ?>" class="btn-edit">✏️ Sửa</a>
+                <a href="accounts.php?tab=edit&id=<?= esc($acc['TenTK']) ?>" class="btn-edit">✏️ Sửa TK</a>
+                <?php if (!empty($acc['MaNV'])): ?>
+                  <a href="accounts.php?tab=edit_nv&nv_id=<?= esc($acc['MaNV']) ?>" class="btn-edit" style="border-color:#16a34a;color:#15803d;background:#f0fdf4">👤 Sửa NV</a>
+                <?php endif; ?>
                 <?php if (!$isSelf): ?>
                   <?php if ($acc['TrangThai'] === 'Hoạt động'): ?>
                     <form method="POST" style="display:inline" onsubmit="return confirm('Khóa tài khoản <?= esc($acc['TenTK']) ?>?')">
@@ -704,6 +774,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
             <td><?= statusBadge($kh['TrangThai'] ?? 'Hoạt động') ?></td>
             <td>
               <div class="tbl-actions" style="justify-content:center">
+                <a href="accounts.php?tab=edit_kh&kh_id=<?= esc($kh['MaKH']) ?>" class="btn-edit">✏️ Sửa</a>
                 <?php $khSt = $kh['TrangThai'] ?? 'Hoạt động'; ?>
                 <?php if ($khSt === 'Hoạt động'): ?>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Khóa tài khoản của «<?= esc($kh['HoTen']) ?>»?\n\nKhách này sẽ không đăng nhập được cho đến khi mở khóa.')">
@@ -930,6 +1001,170 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
         <?php endif; ?>
       </div>
     </div>
+
+    <?php /* ════════════════════════════════════════════════════════
+           TAB: EDIT CUSTOMER INFO
+           ════════════════════════════════════════════════════════ */ ?>
+    <?php elseif ($tab === 'edit_kh' && $editKhData): ?>
+
+    <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start">
+
+      <!-- Form sửa thông tin KH -->
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">✏️ Sửa Thông Tin Khách Hàng</div>
+        <form method="POST">
+          <input type="hidden" name="action" value="edit_kh">
+          <input type="hidden" name="ma_kh" value="<?= esc($editKhData['MaKH']) ?>">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="ho_ten_kh">Họ Và Tên *</label>
+              <input type="text" id="ho_ten_kh" name="ho_ten" class="form-input"
+                value="<?= esc($editKhData['HoTen']) ?>" placeholder="Nguyễn Văn A" required maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="sdt_kh">Số Điện Thoại</label>
+              <input type="tel" id="sdt_kh" name="sdt" class="form-input"
+                value="<?= esc($editKhData['SoDienThoai'] ?? '') ?>" placeholder="0900 000 000" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label for="email_kh">Email</label>
+              <input type="email" id="email_kh" name="email" class="form-input"
+                value="<?= esc($editKhData['Email'] ?? '') ?>" placeholder="email@example.com" maxlength="100">
+            </div>
+            <div class="form-group full">
+              <label for="cccd_kh">CCCD / CMND</label>
+              <input type="text" id="cccd_kh" name="cccd" class="form-input"
+                value="<?= esc($editKhData['CCCD'] ?? '') ?>" placeholder="Để trống nếu không có" maxlength="20">
+              <span class="form-hint">⚠️ Số CCCD/CMND là thông tin nhạy cảm — chỉ cập nhật khi cần thiết. Để trống = xóa CCCD.</span>
+            </div>
+            <div class="form-group full">
+              <label for="dia_chi_kh">Địa Chỉ</label>
+              <input type="text" id="dia_chi_kh" name="dia_chi" class="form-input"
+                value="<?= esc($editKhData['DiaChi'] ?? '') ?>" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố" maxlength="255">
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top:20px">
+            <button type="submit" class="btn-submit">💾 Lưu Thông Tin</button>
+            <a href="accounts.php?tab=customers" class="btn-secondary">← Quay Lại</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- Info card bên phải -->
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">ℹ️ Thông Tin Tài Khoản</div>
+        <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+          <tr><td style="padding:9px 0;color:var(--muted);width:45%">Mã KH</td>
+              <td style="font-weight:700"><?= esc($editKhData['MaKH']) ?></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Tài khoản</td>
+              <td><span style="font-weight:700;color:var(--blue)">@<?= esc($editKhData['TenTaiKhoan']) ?></span></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Trạng thái</td>
+              <td><?= statusBadge($editKhData['TrangThai'] ?? 'Hoạt động') ?></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Điểm tích lũy</td>
+              <td><strong style="color:var(--blue-dark)"><?= number_format((int)$editKhData['TichDiem']) ?></strong> <span style="font-size:.72rem;color:var(--muted)">điểm</span></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Ngày đăng ký</td>
+              <td style="font-size:.8rem"><?= fmtDate($editKhData['NgayTao']) ?></td></tr>
+        </table>
+        <div style="margin-top:16px;background:#fff8f0;border:1px solid #fed7aa;border-radius:8px;padding:12px;font-size:.78rem;color:#92400e">
+          <strong>⚠️ Lưu ý:</strong> Tên tài khoản (@<?= esc($editKhData['TenTaiKhoan']) ?>) và mật khẩu không thể chỉnh sửa từ đây. Khách hàng có thể tự thay đổi tại trang hồ sơ của họ.
+        </div>
+      </div>
+    </div>
+
+    <?php /* ════════════════════════════════════════════════════════
+           TAB: EDIT STAFF INFO (NV)
+           ════════════════════════════════════════════════════════ */ ?>
+    <?php elseif ($tab === 'edit_nv' && $editNvData): ?>
+
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start">
+
+      <!-- Form sửa thông tin NV -->
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">✏️ Sửa Thông Tin Nhân Viên</div>
+        <form method="POST">
+          <input type="hidden" name="action" value="edit_nv">
+          <input type="hidden" name="ma_nv" value="<?= esc($editNvData['MaNV']) ?>">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="ho_ten_nv">Họ Và Tên *</label>
+              <input type="text" id="ho_ten_nv" name="ho_ten" class="form-input"
+                value="<?= esc($editNvData['HoTen']) ?>" placeholder="Nguyễn Văn A" required maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="sdt_nv">Số Điện Thoại</label>
+              <input type="tel" id="sdt_nv" name="sdt" class="form-input"
+                value="<?= esc($editNvData['SoDienThoai'] ?? '') ?>" placeholder="0900 000 000" maxlength="20">
+            </div>
+            <div class="form-group">
+              <label for="email_nv">Email</label>
+              <input type="email" id="email_nv" name="email" class="form-input"
+                value="<?= esc($editNvData['Email'] ?? '') ?>" placeholder="email@example.com" maxlength="100">
+            </div>
+            <div class="form-group">
+              <label for="chuc_vu_nv">Chức Vụ</label>
+              <select name="chuc_vu" id="chuc_vu_nv" class="form-select">
+                <option value="Lễ tân"  <?= ($editNvData['ChucVu'] === 'Lễ tân')  ? 'selected' : '' ?>>👤 Lễ Tân</option>
+                <option value="Quản lý" <?= ($editNvData['ChucVu'] === 'Quản lý') ? 'selected' : '' ?>>👑 Quản Lý</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ngay_vao_lam_nv">Ngày Vào Làm</label>
+              <input type="date" id="ngay_vao_lam_nv" name="ngay_vao_lam" class="form-input"
+                value="<?= esc($editNvData['NgayVaoLam'] ?? '') ?>">
+            </div>
+            <div class="form-group full">
+              <label for="trang_thai_nv_sel">Trạng Thái Làm Việc</label>
+              <select name="trang_thai_nv" id="trang_thai_nv_sel" class="form-select">
+                <option value="Đang làm việc"   <?= ($editNvData['TrangThai'] === 'Đang làm việc')   ? 'selected' : '' ?>>✅ Đang Làm Việc</option>
+                <option value="Ngừng hoạt động" <?= ($editNvData['TrangThai'] === 'Ngừng hoạt động') ? 'selected' : '' ?>>⛔ Ngừng Hoạt Động</option>
+              </select>
+              <span class="form-hint">⚠️ "Ngừng hoạt động" sẽ ẩn nhân viên này khỏi danh sách phân công dọn phòng và gán đặt phòng mới.</span>
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top:20px">
+            <button type="submit" class="btn-submit">💾 Lưu Thông Tin</button>
+            <a href="accounts.php?tab=staff" class="btn-secondary">← Quay Lại</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- Info card bên phải -->
+      <div class="form-card" style="max-width:100%">
+        <div class="form-section-title">ℹ️ Thông Tin Nhân Viên</div>
+        <?php
+          $nvTkQ = $pdo->prepare("SELECT TenTK, VaiTro FROM TAI_KHOAN WHERE MaNV = :id LIMIT 1");
+          $nvTkQ->execute([':id' => $editNvData['MaNV']]);
+          $nvTkRow = $nvTkQ->fetch();
+        ?>
+        <table style="width:100%;border-collapse:collapse;font-size:.84rem">
+          <tr><td style="padding:9px 0;color:var(--muted);width:42%">Mã NV</td>
+              <td style="font-weight:700"><?= esc($editNvData['MaNV']) ?></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Tài khoản</td>
+              <td><?= $nvTkRow
+                    ? '<span style="font-weight:700;color:var(--blue)">@'.esc($nvTkRow['TenTK']).'</span> '.roleBadge($nvTkRow['VaiTro'])
+                    : '<span style="color:#94a3b8;font-style:italic">Chưa có tài khoản</span>' ?></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Chức vụ</td>
+              <td><?= esc($editNvData['ChucVu'] ?? '—') ?></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Trạng thái</td>
+              <td><?php
+                $nvSt = $editNvData['TrangThai'] ?? 'Đang làm việc';
+                echo $nvSt === 'Đang làm việc'
+                  ? "<span class='badge badge-active'>✓ Đang Làm Việc</span>"
+                  : "<span class='badge badge-locked'>⛔ Ngừng HĐ</span>";
+              ?></td></tr>
+          <tr><td style="padding:9px 0;color:var(--muted)">Ngày vào làm</td>
+              <td style="font-size:.8rem"><?= $editNvData['NgayVaoLam']
+                ? date('d/m/Y', strtotime($editNvData['NgayVaoLam']))
+                : '<span style="color:#94a3b8">—</span>' ?></td></tr>
+        </table>
+        <?php if (!$nvTkRow): ?>
+        <div style="margin-top:16px">
+          <a href="accounts.php?tab=add" class="btn-primary-sm" style="width:100%;justify-content:center">➕ Tạo Tài Khoản Cho NV Này</a>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
+
     <?php endif; ?>
 
   </div><!-- /content -->

@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 25/05/2026 (v26: customer/profile.php + nút chỉnh sửa trong dashboard)
+> Cập nhật lần cuối: 25/05/2026 (v27: admin/accounts.php — edit thông tin KH + NV)
 
 ---
 
@@ -231,6 +231,7 @@ getAllServices(PDO $pdo): array
 | 24 | admin/invoices.php — Quản lý hóa đơn | Stats 5 cards, filter tabs+search+tháng/năm/NV, table HOA_DON với JOINs, modal chi tiết (bảng tiền+DV), mark paid/unpaid PRG, in PDF, sidebar thêm 🧾 Hóa Đơn vào 8 admin pages | v24 |
 | 25 | admin/reports.php — Báo cáo doanh thu | Stats 4 cards, bộ lọc năm/tháng/quý, Chart.js line chart DT + bar chart lượt đặt phòng, top 5 phòng/DV/NV, bảng chi tiết 12 tháng có progress bar, xuất CSV (BOM UTF-8), in báo cáo, sidebar thêm 📈 Báo Cáo vào 8 admin pages | v25 |
 | 26 | customer/profile.php — KH chỉnh sửa hồ sơ | Form cập nhật HoTen/SĐT/Email/DiaChi/GioiTinh/NgaySinh; CCCD optional với checkbox toggle + privacy note; form đổi MK với strength bar + PRG redirect; thêm nút ✏️ Chỉnh sửa trong dashboard profile tab; CCCD hiển thị "🔒 Đã cung cấp" thay vì lộ số | v26 |
+| 27 | admin/accounts.php — Edit thông tin KH + NV | Tab edit_kh: sửa HoTen/SĐT/Email/CCCD/DiaChi bảng KHACH_HANG; tab edit_nv: sửa HoTen/SĐT/Email/ChucVu/NgayVaoLam/TrangThai bảng NHAN_VIEN; nút ✏️ Sửa trong bảng KH, nút 👤 Sửa NV trong bảng staff; fix duplicate sidebar link báo cáo | v27 |
 
 ---
 
@@ -311,10 +312,9 @@ getAllServices(PDO $pdo): array
                              CCCD optional (checkbox toggle, privacy note, hiển thị "🔒 Đã cung cấp" trong dashboard);
                              form đổi MK với strength bar; PRG; nút ✏️ trong dashboard profile tab
 
-[ ] admin/accounts.php     — Bổ sung 2 chức năng đang thiếu:
-                             (a) Edit thông tin KH: HoTen, SĐT, Email, CCCD, DiaChi (bảng KHACH_HANG)
-                             (b) Edit thông tin NV: HoTen, SĐT, Email, ChucVu, NgayVaoLam (bảng NHAN_VIEN)
-                             Hiện chỉ có: CRUD TAI_KHOAN + khóa/mở KH
+[x] admin/accounts.php     — DONE v27: tab edit_kh (KH: HoTen/SĐT/Email/CCCD/DiaChi),
+                             tab edit_nv (NV: HoTen/SĐT/Email/ChucVu/NgayVaoLam/TrangThai),
+                             nút ✏️ Sửa trong bảng KH, nút 👤 Sửa NV trong bảng staff accounts
 
 [x] Thêm invoices.php + reports.php vào sidebar tất cả admin pages — DONE v24+v25
 
