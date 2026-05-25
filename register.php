@@ -10,6 +10,7 @@ $error = '';
 $form  = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $form = [
         'hoTen'   => trim($_POST['ho_ten']   ?? ''),
         'tenTK'   => trim($_POST['ten_tk']   ?? ''),
@@ -169,6 +170,7 @@ body{
       <?php endif; ?>
 
       <form method="POST">
+        <?= csrfField() ?>
         <div class="row-2">
           <div class="form-group">
             <label class="form-label">Họ và Tên <span class="required">*</span></label>

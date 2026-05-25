@@ -363,10 +363,10 @@ getAllServices(PDO $pdo): array
                              — admin: filter tabs hiện số đếm từ $stats (chính xác, không bị cắt bởi LIMIT)
                              — admin: overview tab dùng $pendingBookings riêng (không bị ảnh hưởng pagination)
 
-[ ] CSRF protection        — Tất cả POST forms chưa có CSRF token
-                             Nguy cơ: Cross-Site Request Forgery trên các action quan trọng
-                             (hủy phòng, đổi MK, khóa TK, reset MK NV)
-                             Fix: thêm $_SESSION['csrf_token'] + hidden input + verify khi POST
+[x] CSRF protection        — DONE: 3 helpers trong config/db.php (csrfToken/csrfField/csrfVerify)
+                             56 hidden inputs trong 16 files (mọi <form method="POST">)
+                             17 csrfVerify() calls (đầu mỗi POST handler)
+                             hash_equals() chống timing attack; 403 + UI thân thiện khi token sai
 
 [x] Brute-force protection — DONE v29: IP-based tracking (md5 hash, temp JSON /tmp/easyhome_bf.json)
                              Max 5 lần sai → khóa 15 phút; dots indicator (đỏ/vàng) từ lần 1+;

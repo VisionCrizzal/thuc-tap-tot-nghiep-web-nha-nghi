@@ -28,6 +28,7 @@ $msgType  = 'success';
 //  POST HANDLERS
 // ═══════════════════════════════════════════════════════════════════
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ── Thêm tài khoản nhân viên mới ─────────────────────────────
@@ -684,18 +685,21 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
                 <?php if (!$isSelf): ?>
                   <?php if ($acc['TrangThai'] === 'Hoạt động'): ?>
                     <form method="POST" style="display:inline" onsubmit="return confirm('Khóa tài khoản <?= esc($acc['TenTK']) ?>?')">
+                      <?= csrfField() ?>
                       <input type="hidden" name="action" value="toggle_staff_status">
                       <input type="hidden" name="ten_tk" value="<?= esc($acc['TenTK']) ?>">
                       <button type="submit" class="btn-toggle btn-toggle-lock">🔒 Khóa</button>
                     </form>
                   <?php else: ?>
                     <form method="POST" style="display:inline">
+                      <?= csrfField() ?>
                       <input type="hidden" name="action" value="toggle_staff_status">
                       <input type="hidden" name="ten_tk" value="<?= esc($acc['TenTK']) ?>">
                       <button type="submit" class="btn-toggle btn-toggle-unlock">🔓 Mở</button>
                     </form>
                   <?php endif; ?>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Xóa vĩnh viễn tài khoản «<?= esc($acc['TenTK']) ?>»?\n\nHành động này không thể hoàn tác!')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="delete_account">
                     <input type="hidden" name="ten_tk" value="<?= esc($acc['TenTK']) ?>">
                     <button type="submit" class="btn-danger">🗑️</button>
@@ -778,12 +782,14 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
                 <?php $khSt = $kh['TrangThai'] ?? 'Hoạt động'; ?>
                 <?php if ($khSt === 'Hoạt động'): ?>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Khóa tài khoản của «<?= esc($kh['HoTen']) ?>»?\n\nKhách này sẽ không đăng nhập được cho đến khi mở khóa.')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="toggle_kh_status">
                     <input type="hidden" name="ma_kh" value="<?= esc($kh['MaKH']) ?>">
                     <button type="submit" class="btn-toggle btn-toggle-lock">🔒 Khóa</button>
                   </form>
                 <?php else: ?>
                   <form method="POST" style="display:inline">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="toggle_kh_status">
                     <input type="hidden" name="ma_kh" value="<?= esc($kh['MaKH']) ?>">
                     <button type="submit" class="btn-toggle btn-toggle-unlock">🔓 Mở Khóa</button>
@@ -812,6 +818,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
     <div class="form-card">
       <div class="form-section-title">➕ Tạo Tài Khoản Nhân Viên Mới</div>
       <form method="POST">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="add_account">
         <div class="form-grid">
           <div class="form-group">
@@ -877,6 +884,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
       <div class="form-card">
         <div class="form-section-title">✏️ Sửa Tài Khoản: <?= esc($editData['TenTK']) ?></div>
         <form method="POST">
+          <?= csrfField() ?>
           <input type="hidden" name="action" value="edit_account">
           <input type="hidden" name="ten_tk" value="<?= esc($editData['TenTK']) ?>">
           <div class="form-group" style="margin-bottom:16px">
@@ -932,6 +940,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
         <!-- Đặt lại mật khẩu -->
         <div class="form-section-title" style="margin-top:0">🔐 Đặt Lại Mật Khẩu</div>
         <form method="POST">
+          <?= csrfField() ?>
           <input type="hidden" name="action" value="reset_password">
           <input type="hidden" name="ten_tk" value="<?= esc($editData['TenTK']) ?>">
           <div class="form-grid">
@@ -987,6 +996,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
             Xóa tài khoản sẽ <strong>không thể hoàn tác</strong>. Lịch sử đặt phòng của nhân viên này vẫn được giữ lại.
           </p>
           <form method="POST" onsubmit="return confirm('🗑️ Xóa vĩnh viễn tài khoản «<?= esc($editData['TenTK']) ?>»?\n\nHành động này KHÔNG thể hoàn tác!')">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="delete_account">
             <input type="hidden" name="ten_tk" value="<?= esc($editData['TenTK']) ?>">
             <button type="submit" class="btn-danger-lg">🗑️ Xóa Tài Khoản</button>
@@ -1013,6 +1023,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
       <div class="form-card" style="max-width:100%">
         <div class="form-section-title">✏️ Sửa Thông Tin Khách Hàng</div>
         <form method="POST">
+          <?= csrfField() ?>
           <input type="hidden" name="action" value="edit_kh">
           <input type="hidden" name="ma_kh" value="<?= esc($editKhData['MaKH']) ?>">
           <div class="form-grid">
@@ -1082,6 +1093,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
       <div class="form-card" style="max-width:100%">
         <div class="form-section-title">✏️ Sửa Thông Tin Nhân Viên</div>
         <form method="POST">
+          <?= csrfField() ?>
           <input type="hidden" name="action" value="edit_nv">
           <input type="hidden" name="ma_nv" value="<?= esc($editNvData['MaNV']) ?>">
           <div class="form-grid">

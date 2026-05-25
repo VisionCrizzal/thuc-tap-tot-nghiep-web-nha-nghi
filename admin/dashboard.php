@@ -19,6 +19,7 @@ $msgType = 'success';
 
 // ── Xử lý POST ─────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ---- Xác nhận đặt phòng (Chờ xác nhận → Đã nhận phòng) ----
@@ -804,11 +805,13 @@ select.form-ctrl{cursor:pointer}
             <td class="text-right"><strong><?= fmt($bk['TongGia']) ?>đ</strong></td>
             <td>
               <form method="POST" style="display:inline">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="confirm_booking">
                 <input type="hidden" name="ma_dp" value="<?= esc($bk['MaDP']) ?>">
                 <button type="submit" class="btn btn-confirm btn-sm">✓ Xác Nhận</button>
               </form>
               <form method="POST" style="display:inline;margin-left:4px" onsubmit="return confirm('Hủy đặt phòng <?= esc($bk['MaDP']) ?>?')">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="cancel_booking">
                 <input type="hidden" name="ma_dp" value="<?= esc($bk['MaDP']) ?>">
                 <button type="submit" class="btn btn-cancel btn-sm">✕ Hủy</button>
@@ -917,6 +920,7 @@ select.form-ctrl{cursor:pointer}
             <td style="white-space:nowrap">
               <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
               <form method="POST" style="display:inline">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="confirm_booking">
                 <input type="hidden" name="ma_dp" value="<?= esc($bk['MaDP']) ?>">
                 <button type="submit" class="btn btn-confirm btn-sm">✓ XN</button>
@@ -925,6 +929,7 @@ select.form-ctrl{cursor:pointer}
               <?php if (in_array($bk['TrangThai'], ['Chờ xác nhận','Đã nhận phòng'])): ?>
               <form method="POST" style="display:inline;margin-left:3px"
                     onsubmit="return confirm('Xác nhận hủy đặt phòng <?= esc($bk['MaDP']) ?>?')">
+                <?= csrfField() ?>
                 <input type="hidden" name="action" value="cancel_booking">
                 <input type="hidden" name="ma_dp" value="<?= esc($bk['MaDP']) ?>">
                 <button type="submit" class="btn btn-cancel btn-sm">✕ Hủy</button>
@@ -980,6 +985,7 @@ select.form-ctrl{cursor:pointer}
           </div>
         </div>
         <form method="POST">
+          <?= csrfField() ?>
           <input type="hidden" name="action" value="new_booking">
           <div class="form-grid">
             <div class="form-group">
@@ -1098,12 +1104,14 @@ select.form-ctrl{cursor:pointer}
                   <?php if ($s['TrangThai'] === 'Hoạt động'): ?>
                   <form method="POST" style="display:inline"
                         onsubmit="return confirm('Vô hiệu hóa tài khoản <?= esc($s['TenTK']) ?>?')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="delete_staff">
                     <input type="hidden" name="ten_tk" value="<?= esc($s['TenTK']) ?>">
                     <button type="submit" class="btn btn-danger btn-sm">✕ Vô hiệu</button>
                   </form>
                   <?php else: ?>
                   <form method="POST" style="display:inline">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action" value="restore_staff">
                     <input type="hidden" name="ten_tk" value="<?= esc($s['TenTK']) ?>">
                     <button type="submit" class="btn btn-restore btn-sm">↩ Khôi phục</button>
@@ -1125,6 +1133,7 @@ select.form-ctrl{cursor:pointer}
         <div class="form-card" style="position:sticky;top:80px">
           <div class="section-title" style="margin-bottom:16px">➕ Thêm Nhân Viên Mới</div>
           <form method="POST">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="create_staff">
             <div style="display:flex;flex-direction:column;gap:12px">
               <div class="form-group">

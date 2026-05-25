@@ -33,6 +33,7 @@ if (isset($_GET['logout'])) {
 
 // ── Xử lý POST ──────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
     $maDP   = trim($_POST['ma_dp'] ?? '');
     $tab    = 'bookings';
@@ -550,6 +551,7 @@ body{background:var(--bg);min-height:100vh}
                   ✓ Check-in
                 </a>
                 <form method="POST" onsubmit="return confirm('Hủy đặt phòng <?= $bk['MaDP'] ?>?')">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action" value="huy">
                   <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
                   <button type="submit" class="btn-action btn-cancel">✕ Hủy</button>
@@ -637,6 +639,7 @@ body{background:var(--bg);min-height:100vh}
         <div class="room-price"><?= number_format($r['GiaPhong']/1000) ?>k/đêm</div>
         <?php if ($r['TinhTrang'] === 'Đang dọn'): ?>
         <form method="POST" class="clean-form">
+          <?= csrfField() ?>
           <input type="hidden" name="action" value="phong_sach">
           <input type="hidden" name="ma_dp" value="<?= $r['MaPhong'] ?>">
           <button type="submit" class="btn-clean" style="border-color:<?= $rc['border'] ?>;color:<?= $rc['text'] ?>"

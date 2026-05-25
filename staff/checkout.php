@@ -91,6 +91,7 @@ $conLai  = $hd ? max(0, $hd['TongTien'] - $hd['TienCocDaThu']) : 0;
 
 /* ── POST: xử lý thanh toán checkout ────────────────────────────────────── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'checkout') {
+    csrfVerify();
     $phuongThuc  = trim($_POST['phuong_thuc'] ?? 'Tiền mặt');
     $phuPhiExtra = max(0, (float)($_POST['phu_phi_extra'] ?? 0));
     $ghiChuExtra = trim($_POST['ghi_chu'] ?? '');
@@ -448,6 +449,7 @@ body{background:var(--bg);min-height:100vh}
 
   <!-- Form thanh toán -->
   <form method="POST">
+    <?= csrfField() ?>
     <input type="hidden" name="action" value="checkout">
     <input type="hidden" name="phuong_thuc" id="hidPT" value="Tiền mặt">
 

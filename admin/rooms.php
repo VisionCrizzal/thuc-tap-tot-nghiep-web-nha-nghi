@@ -16,6 +16,7 @@ $msgType = 'success';
 
 // ── POST handlers ────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ---- Thêm phòng ----
@@ -559,6 +560,7 @@ textarea.form-ctrl{resize:vertical;min-height:70px}
                 <!-- Quick status change — không cho set "Đang ở" thủ công -->
                 <?php if ($r['TinhTrang'] !== 'Đang ở'): ?>
                 <form method="POST" class="st-form">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action" value="change_status">
                   <input type="hidden" name="ma_phong" value="<?= esc($r['MaPhong']) ?>">
                   <select name="new_status" class="st-select">
@@ -572,6 +574,7 @@ textarea.form-ctrl{resize:vertical;min-height:70px}
 
                 <!-- Delete -->
                 <form method="POST" onsubmit="return confirm('Xóa phòng <?= esc($r['MaPhong']) ?>?\nHành động này không thể hoàn tác.')">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action" value="delete_room">
                   <input type="hidden" name="ma_phong" value="<?= esc($r['MaPhong']) ?>">
                   <button type="submit" class="btn btn-del">🗑</button>
@@ -622,6 +625,7 @@ textarea.form-ctrl{resize:vertical;min-height:70px}
           <div class="rc-status" style="opacity:.8;font-size:.62rem"><?= esc($r['TinhTrang']) ?></div>
           <?php if ($r['TinhTrang'] !== 'Đang ở'): ?>
           <form method="POST" style="margin-top:7px">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="change_status">
             <input type="hidden" name="ma_phong" value="<?= esc($r['MaPhong']) ?>">
             <select name="new_status" class="st-select" style="width:100%;font-size:.65rem;background:rgba(255,255,255,.7)">
@@ -652,6 +656,7 @@ textarea.form-ctrl{resize:vertical;min-height:70px}
 
     <div class="form-card">
       <form method="POST">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="add_room">
         <div class="form-grid">
 
@@ -725,6 +730,7 @@ textarea.form-ctrl{resize:vertical;min-height:70px}
 
     <div class="form-card">
       <form method="POST">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="edit_room">
         <input type="hidden" name="ma_phong" value="<?= esc($editRoom['MaPhong']) ?>">
         <div class="form-grid">

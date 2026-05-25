@@ -13,6 +13,7 @@ $msg = ''; $msgType = 'success';
 
 // ── POST handlers ─────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action  = $_POST['action']    ?? '';
     $maPhong = trim($_POST['ma_phong'] ?? '');
 
@@ -434,6 +435,7 @@ body{display:flex;background:var(--bg);overflow-x:hidden}
           <div class="room-card-actions">
             <?php if ($status === 'Đang dọn'): ?>
               <form method="POST" style="margin:0">
+                <?= csrfField() ?>
                 <input type="hidden" name="action"     value="change_status">
                 <input type="hidden" name="ma_phong"   value="<?= esc($r['MaPhong']) ?>">
                 <input type="hidden" name="new_status" value="Trống">
@@ -441,6 +443,7 @@ body{display:flex;background:var(--bg);overflow-x:hidden}
               </form>
               <form method="POST" style="margin:0"
                     onsubmit="return confirm('Chuyển phòng <?= esc($r['MaPhong']) ?> sang Bảo trì?')">
+                  <?= csrfField() ?>
                 <input type="hidden" name="action"     value="change_status">
                 <input type="hidden" name="ma_phong"   value="<?= esc($r['MaPhong']) ?>">
                 <input type="hidden" name="new_status" value="Bảo trì">
@@ -450,12 +453,14 @@ body{display:flex;background:var(--bg);overflow-x:hidden}
             <?php elseif ($status === 'Bảo trì'): ?>
               <form method="POST" style="margin:0"
                     onsubmit="return confirm('Hoàn thành bảo trì — chuyển phòng <?= esc($r['MaPhong']) ?> về Trống?')">
+                  <?= csrfField() ?>
                 <input type="hidden" name="action"     value="change_status">
                 <input type="hidden" name="ma_phong"   value="<?= esc($r['MaPhong']) ?>">
                 <input type="hidden" name="new_status" value="Trống">
                 <button type="submit" class="act-btn act-done">✅ Hoàn thành — Trống</button>
               </form>
               <form method="POST" style="margin:0">
+                <?= csrfField() ?>
                 <input type="hidden" name="action"     value="change_status">
                 <input type="hidden" name="ma_phong"   value="<?= esc($r['MaPhong']) ?>">
                 <input type="hidden" name="new_status" value="Đang dọn">
@@ -465,12 +470,14 @@ body{display:flex;background:var(--bg);overflow-x:hidden}
             <?php elseif ($status === 'Trống'): ?>
               <form method="POST" style="margin:0"
                     onsubmit="return confirm('Chuyển phòng <?= esc($r['MaPhong']) ?> sang Bảo trì?')">
+                  <?= csrfField() ?>
                 <input type="hidden" name="action"     value="change_status">
                 <input type="hidden" name="ma_phong"   value="<?= esc($r['MaPhong']) ?>">
                 <input type="hidden" name="new_status" value="Bảo trì">
                 <button type="submit" class="act-btn act-maint">🔧 Báo Bảo trì</button>
               </form>
               <form method="POST" style="margin:0">
+                <?= csrfField() ?>
                 <input type="hidden" name="action"     value="change_status">
                 <input type="hidden" name="ma_phong"   value="<?= esc($r['MaPhong']) ?>">
                 <input type="hidden" name="new_status" value="Đang dọn">

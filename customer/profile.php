@@ -33,6 +33,7 @@ if (isset($_GET['msg'])) {
 // ── XỬ LÝ POST ───────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════════
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ────────────────────────────────────────────────────────────────────────
@@ -420,6 +421,7 @@ body{background:var(--bg)}
       </div>
 
       <form method="POST" id="infoForm" novalidate>
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="cap_nhat_tt">
 
         <div class="form-grid">
@@ -561,6 +563,7 @@ body{background:var(--bg)}
     </div>
     <div class="card-body">
       <form method="POST" id="pwForm" novalidate>
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="doi_matkhau">
 
         <div class="form-grid single" style="max-width:440px">

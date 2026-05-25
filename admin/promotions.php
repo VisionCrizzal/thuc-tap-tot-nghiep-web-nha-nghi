@@ -21,6 +21,7 @@ $today         = date('Y-m-d');
 
 // ── POST handlers ─────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ── Thêm khuyến mãi ──────────────────────────────────────────────────────
@@ -602,6 +603,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:42px}
                 <a href="promotions.php?tab=edit&id=<?= esc($p['MaKM']) ?>" class="btn-edit">✏️ Sửa</a>
                 <?php if ($p['TrangThai'] === 'Đang áp dụng'): ?>
                 <form method="POST" style="display:inline">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action"     value="toggle_status">
                   <input type="hidden" name="ma_km"      value="<?= esc($p['MaKM']) ?>">
                   <input type="hidden" name="new_status" value="Tạm dừng">
@@ -609,6 +611,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:42px}
                 </form>
                 <?php else: ?>
                 <form method="POST" style="display:inline">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action"     value="toggle_status">
                   <input type="hidden" name="ma_km"      value="<?= esc($p['MaKM']) ?>">
                   <input type="hidden" name="new_status" value="Đang áp dụng">
@@ -617,6 +620,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:42px}
                 <?php endif; ?>
                 <form method="POST" style="display:inline"
                       onsubmit="return confirm('Xóa khuyến mãi «<?= esc(addslashes($p['TenKM'])) ?>»?\nThao tác này không thể hoàn tác.')">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action" value="delete_promo">
                   <input type="hidden" name="ma_km"  value="<?= esc($p['MaKM']) ?>">
                   <button type="submit" class="btn-del">🗑️ Xóa</button>
@@ -636,6 +640,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:42px}
     <div class="form-card">
       <h3>🎁 Thêm Chương Trình Khuyến Mãi Mới</h3>
       <form method="POST" id="addForm">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="add_promo">
         <div class="form-grid">
 
@@ -742,6 +747,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:42px}
     <div class="form-card">
       <h3>✏️ Sửa Khuyến Mãi: <?= esc($editPromo['MaKM']) ?></h3>
       <form method="POST" id="editForm">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="edit_promo">
         <input type="hidden" name="ma_km"  value="<?= esc($editPromo['MaKM']) ?>">
         <div class="form-grid">

@@ -72,6 +72,53 @@ function getAllServices(PDO $pdo): array {
     return $pdo->query("SELECT * FROM DICH_VU WHERE TrangThai = 'Khả dụng'")->fetchAll();
 }
 
+// ── CSRF PROTECTION ─────────────────────────────────────────────────────────
+
+/**
+ * Tạo / lấy CSRF token cho session hiện tại (64 ký tự hex ngẫu nhiên)
+ */
+function csrfToken(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Trả về hidden input chứa CSRF token — đặt trong mọi <form method="POST">
+ */
+function csrfField(): string {
+    return '<input type="hidden" name="csrf_token" value="'
+         . htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') . '">';
+}
+
+/**
+ * Kiểm tra CSRF token từ POST request.
+ * Gọi ngay đầu mỗi khối xử lý POST — die(403) nếu token không khớp.
+ */
+function csrfVerify(): void {
+    $submitted = $_POST['csrf_token'] ?? '';
+    $expected  = $_SESSION['csrf_token'] ?? '';
+    if ($expected === '' || !hash_equals($expected, $submitted)) {
+        http_response_code(403);
+        die('<div style="font-family:sans-serif;padding:40px;max-width:500px;margin:80px auto;
+                background:#fff0f0;border:2px solid #fca5a5;border-radius:12px;text-align:center">
+            <div style="font-size:3rem;margin-bottom:12px">⛔</div>
+            <h2 style="color:#dc2626;margin-bottom:8px">Yêu cầu không hợp lệ</h2>
+            <p style="color:#64748b;margin-bottom:20px">
+                Token bảo mật không khớp. Có thể do phiên làm việc đã hết hạn.
+            </p>
+            <a href="javascript:history.back()"
+               style="display:inline-block;padding:10px 24px;background:#1d4ed8;color:#fff;
+                      border-radius:8px;text-decoration:none;font-weight:700">
+               ← Quay lại
+            </a>
+        </div>');
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 /**
  * Kiểm tra đăng nhập tài khoản nhân viên
  * Trả về mảng thông tin tài khoản hoặc false

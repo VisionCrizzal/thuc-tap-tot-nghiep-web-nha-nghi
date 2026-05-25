@@ -13,6 +13,7 @@ $msg = ''; $msgType = 'success';
 
 // ── POST handlers ─────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
     $maHD   = trim($_POST['ma_hd'] ?? '');
 
@@ -657,6 +658,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
 
                   <?php if ($hd['TrangThai'] === 'Chưa thanh toán'): ?>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Xác nhận đã thu tiền hóa đơn <?= esc($hd['MaHD']) ?>?')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action"   value="mark_paid">
                     <input type="hidden" name="ma_hd"    value="<?= esc($hd['MaHD']) ?>">
                     <input type="hidden" name="_filter"  value="<?= esc($filterStatus) ?>">
@@ -667,6 +669,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
                   </form>
                   <?php else: ?>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Chuyển hóa đơn <?= esc($hd['MaHD']) ?> về chưa thanh toán?')">
+                    <?= csrfField() ?>
                     <input type="hidden" name="action"   value="mark_unpaid">
                     <input type="hidden" name="ma_hd"    value="<?= esc($hd['MaHD']) ?>">
                     <input type="hidden" name="_filter"  value="<?= esc($filterStatus) ?>">

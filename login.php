@@ -68,6 +68,7 @@ $lockRemain = $isLocked ? max(0, $bfUntil - time()) : 0;
 
 // ── Xử lý POST ──────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
 
     // Chặn ngay nếu đang bị khóa
     if ($isLocked) {
@@ -391,6 +392,7 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
       <?php else: ?>
       <!-- Normal login form -->
       <form method="POST">
+        <?= csrfField() ?>
         <?php if ($next !== ''): ?>
         <input type="hidden" name="next" value="<?= htmlspecialchars($next) ?>">
         <?php endif; ?>

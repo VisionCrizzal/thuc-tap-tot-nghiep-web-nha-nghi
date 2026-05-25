@@ -16,6 +16,7 @@ $msgType = 'success';
 
 // ── POST handlers ────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ── Thêm dịch vụ ─────────────────────────────────────────────────────────
@@ -562,6 +563,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
                 <!-- Toggle trạng thái -->
                 <?php if ($s['TrangThai'] === 'Khả dụng'): ?>
                 <form method="post" style="display:inline" onsubmit="return confirm('Tạm ngừng dịch vụ «<?= esc($s['TenDV']) ?>»?')">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action"     value="toggle_status">
                   <input type="hidden" name="ma_dv"      value="<?= esc($s['MaDV']) ?>">
                   <input type="hidden" name="new_status" value="Ngừng">
@@ -569,6 +571,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
                 </form>
                 <?php else: ?>
                 <form method="post" style="display:inline">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action"     value="toggle_status">
                   <input type="hidden" name="ma_dv"      value="<?= esc($s['MaDV']) ?>">
                   <input type="hidden" name="new_status" value="Khả dụng">
@@ -579,6 +582,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
                 <!-- Xóa -->
                 <form method="post" style="display:inline"
                       onsubmit="return confirm('Xóa dịch vụ «<?= esc($s['TenDV']) ?>»?\n<?= (int)$s['LuotDung'] > 0 ? "Đã có " . $s['LuotDung'] . " lượt sử dụng — sẽ chuyển sang Ngừng." : "Sẽ bị xóa vĩnh viễn." ?>')">
+                  <?= csrfField() ?>
                   <input type="hidden" name="action" value="delete_service">
                   <input type="hidden" name="ma_dv"  value="<?= esc($s['MaDV']) ?>">
                   <button type="submit" class="btn-del">🗑️</button>
@@ -604,6 +608,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
     <div class="form-card">
       <h3>➕ Thêm Dịch Vụ Mới</h3>
       <form method="post" id="addForm">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="add_service">
         <div class="form-grid">
 
@@ -678,6 +683,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
     <div class="form-card">
       <h3>✏️ Chỉnh Sửa Dịch Vụ</h3>
       <form method="post" id="editForm">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="edit_service">
         <input type="hidden" name="ma_dv"  value="<?= esc($editSvc['MaDV']) ?>">
         <div class="form-grid">
@@ -759,6 +765,7 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
           <?php if ((int)$usage['cnt'] === 0): ?>
           <form method="post" style="display:inline;margin-left:auto"
                 onsubmit="return confirm('Xóa vĩnh viễn dịch vụ «<?= esc($editSvc['TenDV']) ?>»?')">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="delete_service">
             <input type="hidden" name="ma_dv"  value="<?= esc($editSvc['MaDV']) ?>">
             <button type="submit" class="btn-del" style="padding:10px 18px">🗑️ Xóa Dịch Vụ</button>

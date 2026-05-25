@@ -36,6 +36,7 @@ $checking = $checkinCnt->fetchColumn();
 
 // ── Xử lý POST ──────────────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrfVerify();
     $action = $_POST['action'] ?? '';
 
     // ── Đổi mật khẩu ────────────────────────────────────────────────────────
@@ -314,6 +315,7 @@ body{background:var(--bg);min-height:100vh}
 
       <!-- Editable contact form -->
       <form method="POST" id="contactForm">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="cap_nhat_tt">
         <div class="form-row">
           <div class="form-group">
@@ -349,6 +351,7 @@ body{background:var(--bg);min-height:100vh}
     </div>
     <div class="card-body">
       <form method="POST" id="pwForm" onsubmit="return validatePwForm()">
+        <?= csrfField() ?>
         <input type="hidden" name="action" value="doi_matkhau">
 
         <div class="form-group">

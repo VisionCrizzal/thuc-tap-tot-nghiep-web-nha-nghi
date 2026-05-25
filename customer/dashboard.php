@@ -42,6 +42,7 @@ $roomPrices = [
 
 // ── Xử lý POST: Đặt phòng ───────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dat_phong') {
+    csrfVerify();
     $tab = 'booking';
     $ciDate  = $_POST['checkin_date']  ?? '';
     $ciTime  = $_POST['checkin_time']  ?? '14:00';
@@ -140,6 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dat_p
 
 // ── Xử lý POST: Hủy đặt phòng ──────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'huy_phong') {
+    csrfVerify();
     $maDP = $_POST['ma_dp'] ?? '';
     $check = $pdo->prepare("SELECT MaDP FROM DAT_PHONG WHERE MaDP=:id AND MaKH=:kh AND TrangThai='Chờ xác nhận'");
     $check->execute([':id' => $maDP, ':kh' => $khId]);
@@ -506,6 +508,7 @@ body{background:var(--bg)}
   <div id="tab-booking" class="tab-content <?= $tab==='booking'?'active':'' ?>">
 
     <form method="POST" id="bookingForm">
+      <?= csrfField() ?>
       <input type="hidden" name="action" value="dat_phong">
       <input type="hidden" name="ma_km" id="hidKMKh" value="">
 
@@ -737,6 +740,7 @@ body{background:var(--bg)}
           <a href="booking-detail.php?dp=<?= urlencode($bk['MaDP']) ?>" class="btn-detail">🔍 Chi tiết</a>
           <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
           <form method="POST" onsubmit="return confirm('Xác nhận hủy đặt phòng này?')" style="margin:0">
+            <?= csrfField() ?>
             <input type="hidden" name="action" value="huy_phong">
             <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
             <button type="submit" class="btn-cancel">✕ Hủy</button>

@@ -85,6 +85,7 @@ $sicon = $statusIcon[$status] ?? '📋';
 
 // ── Xử lý hủy đặt phòng ─────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'huy') {
+    csrfVerify();
     if ($status === 'Chờ xác nhận') {
         $pdo->prepare("UPDATE DAT_PHONG SET TrangThai='Đã hủy' WHERE MaDP=? AND MaKH=?")
             ->execute([$maDP, $khId]);
@@ -542,6 +543,7 @@ body{background:var(--bg);min-height:100vh}
     <a href="dashboard.php?tab=history" class="btn-home">← Về Lịch Sử</a>
     <?php if ($status === 'Chờ xác nhận'): ?>
     <form method="POST" onsubmit="return confirm('Xác nhận hủy đặt phòng này? Hành động không thể khôi phục.')">
+      <?= csrfField() ?>
       <input type="hidden" name="action" value="huy">
       <button type="submit" class="btn-cancel">✕ Hủy Đặt Phòng</button>
     </form>

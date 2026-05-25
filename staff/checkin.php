@@ -50,6 +50,7 @@ $defCoc    = round(($tienPhong + $tienDV) * 0.3);
 
 /* ── POST: xử lý check-in ────────────────────────────────────────────────── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'checkin') {
+    csrfVerify();
     $addSvcs    = array_filter($_POST['add_svcs'] ?? []);
     $phuongThuc = trim($_POST['phuong_thuc'] ?? 'Tiền mặt');
     $maKM       = trim($_POST['ma_km'] ?? '');
@@ -310,6 +311,7 @@ body{background:var(--bg);min-height:100vh}
 </div>
 
 <form method="POST">
+  <?= csrfField() ?>
 <input type="hidden" name="action" value="checkin">
 <input type="hidden" name="ma_km"  id="hidKM"  value="">
 <input type="hidden" name="phuong_thuc" id="hidPT" value="Tiền mặt">
