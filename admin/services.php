@@ -423,11 +423,12 @@ td:first-child{text-align:center;color:var(--muted);font-size:.78rem;width:46px}
     <a href="services.php"                  class="sb-nav-item active"><span class="sb-nav-icon">🛎️</span><span>Dịch Vụ</span></a>
     <div class="sb-nav-divider"></div>
     <a href="dashboard.php?tab=staff"       class="sb-nav-item"><span class="sb-nav-icon">👥</span><span>Nhân Viên</span></a>
+    <a href="accounts.php"                  class="sb-nav-item"><span class="sb-nav-icon">🔑</span><span>Tài Khoản</span></a>
     <a href="dashboard.php?tab=report"      class="sb-nav-item"><span class="sb-nav-icon">📈</span><span>Báo Cáo</span></a>
   </nav>
 
   <div class="sb-footer">
-    <a href="../login.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
+    <a href="../logout.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
   </div>
 </aside>
 

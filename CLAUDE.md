@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 24/05/2026 (thêm TODO đầy đủ)
+> Cập nhật lần cuối: 25/05/2026 (v17: logout.php + admin/accounts.php)
 
 ---
 
@@ -55,7 +55,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 ├── login.php                      ✅ Đăng nhập chung — 1 form tự nhận diện vai trò (DONE)
 ├── register.php                   ✅ Đăng ký khách hàng (DONE)
 ├── rooms.php                      ✅ Trang tìm kiếm & kết quả phòng trống (DONE)
-├── logout.php                     🔲 Dedicated logout — session_destroy() + redirect (TODO)
+├── logout.php                     ✅ Dedicated logout — session_destroy() + redirect (DONE v17)
 ├── forgot-password.php            🔲 Quên mật khẩu (TODO)
 ├── 404.php                        🔲 Custom error page (TODO)
 │
@@ -78,7 +78,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 ├── admin/
 │   ├── dashboard.php              ✅ Tổng quan + quản lý đặt phòng + nhân viên (DONE)
 │   ├── rooms.php                  ✅ CRUD phòng, sơ đồ theo tầng (DONE)
-│   ├── accounts.php               🔲 Quản lý tài khoản nâng cao (TODO)
+│   ├── accounts.php               ✅ CRUD TAI_KHOAN + khóa/mở KH, thêm cột TrangThai KH (DONE v17)
 │   ├── services.php               ✅ CRUD dịch vụ — bảng DICH_VU (DONE)
 │   ├── promotions.php             🔲 CRUD khuyến mãi — bảng KHUYEN_MAI (TODO)
 │   ├── invoices.php               🔲 Danh sách hóa đơn toàn hệ thống (TODO)
@@ -218,6 +218,7 @@ getAllServices(PDO $pdo): array
 | 14 | Trang kết quả tìm kiếm | rooms.php — search form, filter loại phòng, room cards với SVG giường, pre-fill booking form | v14 |
 | 15 | Check-in, Check-out, thanh toán đa phương thức, in hóa đơn PDF, khuyến mãi | staff/checkin.php + staff/checkout.php (cash/card/QR/Apple Pay/Google Pay/Samsung Pay, in PDF) + promo trong customer/dashboard.php + sửa staff/dashboard.php | v15 |
 | 16 | Quản lý dịch vụ admin | admin/services.php — CRUD DICH_VU, toggle trạng thái, emoji picker, preview ảnh, stat cards lượt dùng & doanh thu DV | v16 |
+| 17 | Logout + Quản lý tài khoản | logout.php (session_destroy tập trung) + admin/accounts.php (CRUD TAI_KHOAN, khóa/mở KH, thêm cột TrangThai vào KHACH_HANG, update login.php) | v17 |
 
 ---
 
@@ -254,12 +255,13 @@ getAllServices(PDO $pdo): array
 [x] In hóa đơn PDF         — window.print() + @media print CSS (DONE v15)
 
 ──────────────────────── CẦN LÀM — ƯU TIÊN CAO ────────────────────────
-[ ] logout.php             — Dedicated logout: session_destroy() + redirect
-                             ⚠️ BUG bảo mật: admin/dashboard.php & admin/rooms.php
-                             hiện redirect thẳng login.php mà KHÔNG destroy session!
+[x] logout.php             — Dedicated logout: session_destroy() + redirect (DONE v17)
+                             ✅ Fix: tất cả admin/staff pages giờ trỏ về ../logout.php
 
-[ ] admin/accounts.php     — Quản lý tài khoản: CRUD TAI_KHOAN (reset mật khẩu NV,
-                             khóa/mở tài khoản KH, tạo tài khoản NV mới)
+[x] admin/accounts.php     — CRUD TAI_KHOAN (reset mật khẩu NV, khóa/mở KH,
+                             tạo tài khoản NV mới) (DONE v17)
+                             ✅ KHACH_HANG.TrangThai tự động thêm khi trang load lần đầu
+                             ✅ login.php check TrangThai KH trước khi cho vào
 
 [x] admin/services.php     — CRUD dịch vụ (bảng DICH_VU): thêm/sửa/xóa,
                              đổi trạng thái Khả dụng/Ngừng, emoji picker, preview ảnh,

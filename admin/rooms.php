@@ -409,11 +409,12 @@ textarea.form-ctrl{resize:vertical;min-height:70px}
     <a href="dashboard.php?tab=new-booking"  class="sb-nav-item"><span class="sb-nav-icon">➕</span><span>Đặt Phòng Mới</span></a>
     <a href="rooms.php"                      class="sb-nav-item active"><span class="sb-nav-icon">🛏️</span><span>Quản Lý Phòng</span></a>
     <a href="dashboard.php?tab=staff"        class="sb-nav-item"><span class="sb-nav-icon">👥</span><span>Nhân Viên</span></a>
+    <a href="accounts.php"                   class="sb-nav-item"><span class="sb-nav-icon">🔑</span><span>Tài Khoản</span></a>
     <a href="dashboard.php?tab=report"       class="sb-nav-item"><span class="sb-nav-icon">📈</span><span>Báo Cáo</span></a>
   </nav>
 
   <div class="sb-footer">
-    <a href="../login.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
+    <a href="../logout.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
   </div>
 </aside>
 

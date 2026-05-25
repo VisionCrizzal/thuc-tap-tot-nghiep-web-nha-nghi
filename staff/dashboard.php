@@ -325,7 +325,7 @@ body{background:var(--bg);min-height:100vh}
       <div class="staff-name"><?= htmlspecialchars($nv['HoTen'] ?? $staffId) ?></div>
       <div class="staff-role"><?= $nv['ChucVu'] ?? 'Lễ tân' ?> · <?= $nv['MaNV'] ?? '' ?></div>
     </div>
-    <a href="?logout=1" class="btn-logout">Đăng xuất</a>
+    <a href="../logout.php" class="btn-logout">Đăng xuất</a>
   </div>
 </div>
 

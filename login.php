@@ -18,11 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $kh = $stmt->fetch();
 
         if ($kh && password_verify($password, $kh['MatKhau'])) {
-            $_SESSION['kh_id']   = $kh['MaKH'];
-            $_SESSION['kh_name'] = $kh['HoTen'];
-            $_SESSION['kh_role'] = 'khachhang';
-            header('Location: customer/dashboard.php');
-            exit;
+            // Kiểm tra tài khoản KH có bị khóa không (cột TrangThai thêm từ admin/accounts.php)
+            $khStatus = $kh['TrangThai'] ?? 'Hoạt động';
+            if ($khStatus === 'Khóa') {
+                $error = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ khách sạn để được hỗ trợ.';
+            } else {
+                $_SESSION['kh_id']   = $kh['MaKH'];
+                $_SESSION['kh_name'] = $kh['HoTen'];
+                $_SESSION['kh_role'] = 'khachhang';
+                header('Location: customer/dashboard.php');
+                exit;
+            }
         }
 
         // 2. Thử nhân viên / quản lý (bảng TAI_KHOAN)

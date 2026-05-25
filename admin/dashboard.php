@@ -569,10 +569,18 @@ select.form-ctrl{cursor:pointer}
       <span class="sb-nav-icon">🛏️</span>
       <span>Quản Lý Phòng</span>
     </a>
+    <a href="services.php" class="sb-nav-item">
+      <span class="sb-nav-icon">🛎️</span>
+      <span>Dịch Vụ</span>
+    </a>
+    <a href="accounts.php" class="sb-nav-item">
+      <span class="sb-nav-icon">🔑</span>
+      <span>Tài Khoản</span>
+    </a>
   </nav>
 
   <div class="sb-footer">
-    <a href="../login.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
+    <a href="../logout.php" class="btn-logout">🚪 <span>Đăng Xuất</span></a>
   </div>
 
 </aside>
