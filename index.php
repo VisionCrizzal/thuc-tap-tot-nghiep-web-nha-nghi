@@ -870,7 +870,9 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
 
   <!-- ── ROOM GRID ── -->
   <div class="room-grid" id="roomGrid">
-    <?php foreach($rooms as $r):
+    <?php
+    $roomLabels = ['Đơn'=>'Phòng Đơn','Đôi'=>'Phòng Đôi','Gia đình'=>'Phòng Gia Đình','VIP'=>'Phòng VIP'];
+    foreach($rooms as $r):
       $sc = roomStatusColor($r['TinhTrang']);
       $ok = $r['TinhTrang']==='Trống';
       $pr = number_format($r['GiaPhong'],0,',','.');
@@ -884,7 +886,7 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
       </div>
       <div class="room-body">
         <div class="room-code">Phòng <?=htmlspecialchars($r['MaPhong'])?> · Tầng <?=$r['Tang']?></div>
-        <div class="room-name"><?=htmlspecialchars($r['LoaiPhong'])?> Room</div>
+        <div class="room-name"><?=htmlspecialchars($roomLabels[$r['LoaiPhong']] ?? 'Phòng '.$r['LoaiPhong'])?></div>
         <div class="room-amenities">
           <div class="amenity">👥 <?=$r['SoNguoiToiDa']?> người</div>
           <div class="amenity">📽 Máy chiếu</div>
