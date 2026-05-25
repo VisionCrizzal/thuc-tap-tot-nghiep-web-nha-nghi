@@ -224,8 +224,8 @@ function getBedSVG(string $loaiPhong): string {
 function roomStatusColor(string $s): string {
     return match($s){'Trống'=>'#3b82f6','Đang ở'=>'#ef4444','Đang dọn'=>'#f59e0b','Bảo trì'=>'#6b7280',default=>'#94a3b8'};
 }
-function esc($s){ return htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8'); }
-function fmt($n){ return number_format((float)$n,0,',','.'); }
+function esc(mixed $s): string { return htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8'); }
+function fmt(mixed $n): string { return number_format((float)$n,0,',','.'); }
 
 // Format ngày đẹp
 function fmtDate(string $d): string {
@@ -338,7 +338,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:h
 .room-desc{font-size:.77rem;color:var(--muted);line-height:1.55;min-height:36px}
 .room-foot{display:flex;align-items:center;justify-content:space-between;
   padding:12px 18px;border-top:1px solid var(--border);background:var(--blue-pale)}
-.price-block{}
 .price-amt{font-family:var(--serif);font-size:1.28rem;font-weight:600;color:var(--blue-dark)}
 .price-unit{font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:1px}
 .price-total{font-size:.7rem;color:var(--blue);font-weight:600;margin-top:2px}
