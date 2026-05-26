@@ -209,7 +209,9 @@ sendCheckinReminder(email, name, booking[]): bool      // nhắc check-in ngày 
 sendPasswordReset(email, name, resetLink): bool        // link reset mật khẩu 1h
 
 // SMTP: smtp.gmail.com:587 STARTTLS
-// Tài khoản gửi: nguyengocvi94tn@gmail.com (App Password)
+// Tài khoản gửi: nguyengocvi94tn@gmail.com
+// App Password:  ***REMOVED***   ← tạo tại myaccount.google.com → Bảo mật → App passwords
+// Tên ứng dụng: Easyhome (đặt khi tạo App Password)
 // SSL verify_peer: false (fix cho XAMPP local OpenSSL)
 ```
 
