@@ -171,18 +171,19 @@ if (isset($_SESSION['booking_success'])) {
     unset($_SESSION['booking_success']);
 }
 
-// ── Xử lý POST: Hủy đặt phòng ──────────────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'huy_phong') {
-    csrfVerify();
-    $maDP = $_POST['ma_dp'] ?? '';
-    $check = $pdo->prepare("SELECT MaDP FROM DAT_PHONG WHERE MaDP=:id AND MaKH=:kh AND TrangThai='Chờ xác nhận'");
-    $check->execute([':id' => $maDP, ':kh' => $khId]);
-    if ($check->fetch()) {
-        $pdo->prepare("UPDATE DAT_PHONG SET TrangThai='Đã hủy' WHERE MaDP=:id")->execute([':id' => $maDP]);
-        $msg = "Đã hủy đặt phòng <strong>{$maDP}</strong>.";
-        $msgType = 'success';
+// ── Thông báo sau khi hủy đặt phòng (từ cancel-booking.php) ────────────────
+if (isset($_SESSION['cancel_success'])) {
+    $cs = $_SESSION['cancel_success'];
+    if ($cs['refundAmt'] > 0) {
+        $msg = "✅ Đã hủy đặt phòng <strong>{$cs['maDP']}</strong>. Hoàn tiền <strong>"
+             . number_format($cs['refundAmt'], 0, ',', '.') . "đ</strong> ({$cs['refundPct']}%) — nhân viên sẽ xử lý trong 1–3 ngày làm việc.";
+    } else {
+        $msg = "Đã hủy đặt phòng <strong>{$cs['maDP']}</strong>."
+             . ($cs['refundPct'] === 0 && isset($cs['hadDeposit']) ? ' Không hoàn tiền theo chính sách hủy muộn.' : '');
     }
+    $msgType = 'success';
     $tab = 'history';
+    unset($_SESSION['cancel_success']);
 }
 
 // ── Lấy lịch sử đặt phòng ──────────────────────────────────────────────────
@@ -806,12 +807,10 @@ body{background:var(--bg)}
           <?php endif; ?>
           <a href="booking-detail.php?dp=<?= urlencode($bk['MaDP']) ?>" class="btn-detail">🔍 Chi tiết</a>
           <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
-          <form method="POST" onsubmit="return confirm('Xác nhận hủy đặt phòng này?')" style="margin:0">
-            <?= csrfField() ?>
-            <input type="hidden" name="action" value="huy_phong">
-            <input type="hidden" name="ma_dp" value="<?= $bk['MaDP'] ?>">
-            <button type="submit" class="btn-cancel">✕ Hủy</button>
-          </form>
+          <a href="cancel-booking.php?dp=<?= urlencode($bk['MaDP']) ?>" class="btn-cancel"
+             style="text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+            🚫 Hủy phòng
+          </a>
           <?php endif; ?>
         </div>
       </div>

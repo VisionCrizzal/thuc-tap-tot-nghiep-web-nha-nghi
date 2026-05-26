@@ -188,6 +188,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tab = 'staff';
     }
 
+    // ---- Đánh dấu đã hoàn tiền (do khách hàng hủy) ----
+    elseif ($action === 'mark_refunded') {
+        $maDP = trim($_POST['ma_dp'] ?? '');
+        if ($maDP) {
+            try {
+                $bkRow = $pdo->prepare("SELECT GhiChu FROM DAT_PHONG WHERE MaDP=:id AND TrangThai='Đã hủy'");
+                $bkRow->execute([':id' => $maDP]);
+                $bkRow = $bkRow->fetch();
+                if ($bkRow) {
+                    $ts = date('Y-m-d H:i');
+                    $newGC = trim($bkRow['GhiChu'] . " [DA_HOAN:{$ts}]");
+                    $pdo->prepare("UPDATE DAT_PHONG SET GhiChu=:gc WHERE MaDP=:id")
+                        ->execute([':gc' => $newGC, ':id' => $maDP]);
+                    $msg = "Đã đánh dấu hoàn tiền cho đặt phòng {$maDP}.";
+                }
+            } catch (PDOException $e) {
+                $msg = "Lỗi CSDL: " . $e->getMessage();
+                $msgType = 'error';
+            }
+        }
+        $tab = 'bookings';
+    }
+
     // ---- Khôi phục tài khoản ----
     elseif ($action === 'restore_staff') {
         $tenTK = trim($_POST['ten_tk'] ?? '');
@@ -240,7 +263,9 @@ $stats = [
     'occupied'      => (int)$pdo->query("SELECT COUNT(*) FROM PHONG WHERE TinhTrang='Đang ở'")->fetchColumn(),
     'total_room'    => (int)$pdo->query("SELECT COUNT(*) FROM PHONG")->fetchColumn(),
     'revenue_month' => (float)$pdo->query("SELECT COALESCE(SUM(TongGia),0) FROM DAT_PHONG WHERE TrangThai NOT IN ('Đã hủy') AND MONTH(NgayDat)=MONTH(NOW()) AND YEAR(NgayDat)=YEAR(NOW())")->fetchColumn(),
-    'checkin_today' => (int)$pdo->query("SELECT COUNT(*) FROM DAT_PHONG WHERE DATE(NgayCheckIn)=CURDATE() AND TrangThai NOT IN ('Đã hủy')")->fetchColumn(),
+    'checkin_today'   => (int)$pdo->query("SELECT COUNT(*) FROM DAT_PHONG WHERE DATE(NgayCheckIn)=CURDATE() AND TrangThai NOT IN ('Đã hủy')")->fetchColumn(),
+    'refund_pending'  => (int)$pdo->query("SELECT COUNT(*) FROM DAT_PHONG WHERE TrangThai='Đã hủy' AND GhiChu LIKE '%[HUY_KH:%' AND GhiChu NOT LIKE '%[DA_HOAN:%' AND TienCoc > 0")->fetchColumn(),
+    'refund_total'    => (float)$pdo->query("SELECT COALESCE(SUM(TienCoc),0) FROM DAT_PHONG WHERE TrangThai='Đã hủy' AND GhiChu LIKE '%[HUY_KH:%' AND GhiChu NOT LIKE '%[DA_HOAN:%' AND TienCoc > 0")->fetchColumn(),
 ];
 
 // ── Pending bookings cho overview tab (luôn lấy, không bị ảnh hưởng bởi pagination) ──
@@ -343,6 +368,11 @@ $maxRevType = max(array_column($revType, 'DoanhThu') ?: [1]);
 // Helpers
 function fmt(mixed $n): string  { return number_format((float)$n, 0, ',', '.'); }
 function esc(mixed $s): string  { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
+// Trích giá trị tag [KEY:value] từ GhiChu
+function extractTag(string $haystack, string $key): string {
+    preg_match('/\[' . preg_quote($key, '/') . ':([^\]]*)\]/', $haystack, $m);
+    return $m[1] ?? '';
+}
 function statusBadge(mixed $s): string {
     $map = [
         'Chờ xác nhận' => ['#f59e0b','#fffbeb','⏳'],
@@ -510,6 +540,12 @@ tr:hover td{background:var(--blue-pale)}
 .btn-restore{background:#d1fae5;color:#065f46}
 .btn-restore:hover{background:#10b981;color:#fff}
 .btn-sm{padding:4px 9px;font-size:.7rem}
+.btn-refund{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.btn-refund:hover{background:#f59e0b;color:#fff}
+.badge-refund-pending{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;
+  font-size:.68rem;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.badge-refunded{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;
+  font-size:.68rem;font-weight:700;background:#dcfce7;color:#16a34a;border:1px solid #86efac}
 
 /* ── FORM ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
@@ -625,46 +661,23 @@ select.form-ctrl{cursor:pointer}
   </div>
 
   <nav class="sb-nav">
-    <?php foreach ($navItems as $key => $item): ?>
-    <a href="?tab=<?= $key ?>" class="sb-nav-item <?= $tab===$key?'active':'' ?>">
-      <span class="sb-nav-icon"><?= $item['icon'] ?></span>
-      <span><?= $item['label'] ?></span>
-      <?php if ($key==='bookings' && $stats['pending']>0): ?>
-        <span class="sb-badge"><?= $stats['pending'] ?></span>
-      <?php endif; ?>
+    <a href="?tab=overview"    class="sb-nav-item <?= $tab==='overview'    ? 'active':'' ?>"><span class="sb-nav-icon">📊</span><span>Tổng Quan</span></a>
+    <a href="?tab=bookings"    class="sb-nav-item <?= $tab==='bookings'    ? 'active':'' ?>">
+      <span class="sb-nav-icon">📋</span><span>Quản Lý Đặt Phòng</span>
+      <?php if ($stats['pending'] > 0): ?><span class="sb-badge"><?= $stats['pending'] ?></span><?php endif; ?>
     </a>
-    <?php endforeach; ?>
-    <a href="calendar.php" class="sb-nav-item">
-      <span class="sb-nav-icon">📅</span>
-      <span>Lịch Đặt Phòng</span>
-    </a>
+    <a href="calendar.php"     class="sb-nav-item"><span class="sb-nav-icon">📅</span><span>Lịch Đặt Phòng</span></a>
+    <a href="?tab=new-booking" class="sb-nav-item <?= $tab==='new-booking' ? 'active':'' ?>"><span class="sb-nav-icon">➕</span><span>Đặt Phòng Mới</span></a>
     <div class="sb-nav-divider"></div>
-    <a href="rooms.php" class="sb-nav-item">
-      <span class="sb-nav-icon">🛏️</span>
-      <span>Quản Lý Phòng</span>
-    </a>
-    <a href="housekeeping.php" class="sb-nav-item">
-      <span class="sb-nav-icon">🧹</span>
-      <span>Dọn Phòng</span>
-    </a>
-    <a href="services.php" class="sb-nav-item">
-      <span class="sb-nav-icon">🛎️</span>
-      <span>Dịch Vụ</span>
-    </a>
-    <a href="promotions.php" class="sb-nav-item">
-      <span class="sb-nav-icon">🎁</span>
-      <span>Khuyến Mãi</span>
-    </a>
-    <a href="invoices.php" class="sb-nav-item">
-    <a href="reports.php"                   class="sb-nav-item"><span class="sb-nav-icon">📈</span><span>Báo Cáo</span></a>
-      <span class="sb-nav-icon">🧾</span>
-      <span>Hóa Đơn</span>
-    </a>
+    <a href="rooms.php"        class="sb-nav-item"><span class="sb-nav-icon">🛏️</span><span>Quản Lý Phòng</span></a>
+    <a href="housekeeping.php" class="sb-nav-item"><span class="sb-nav-icon">🧹</span><span>Dọn Phòng</span></a>
+    <a href="services.php"     class="sb-nav-item"><span class="sb-nav-icon">🛎️</span><span>Dịch Vụ</span></a>
+    <a href="promotions.php"   class="sb-nav-item"><span class="sb-nav-icon">🎁</span><span>Khuyến Mãi</span></a>
+    <a href="invoices.php"     class="sb-nav-item"><span class="sb-nav-icon">🧾</span><span>Hóa Đơn</span></a>
+    <a href="reports.php"      class="sb-nav-item"><span class="sb-nav-icon">📈</span><span>Báo Cáo</span></a>
     <div class="sb-nav-divider"></div>
-    <a href="accounts.php" class="sb-nav-item">
-      <span class="sb-nav-icon">🔑</span>
-      <span>Tài Khoản</span>
-    </a>
+    <a href="?tab=staff"       class="sb-nav-item <?= $tab==='staff'       ? 'active':'' ?>"><span class="sb-nav-icon">👥</span><span>Nhân Viên</span></a>
+    <a href="accounts.php"     class="sb-nav-item"><span class="sb-nav-icon">🔑</span><span>Tài Khoản</span></a>
   </nav>
 
   <div class="sb-footer">
@@ -767,7 +780,19 @@ select.form-ctrl{cursor:pointer}
           <div class="stat-value" style="color:#16a34a"><?= $stats['checkin_today'] ?></div>
           <div class="stat-label">Check-in Hôm Nay</div>
         </div>
-        <div class="stat-card" style="grid-column:span 2">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:#fef3c7">💸</div>
+          <div class="stat-value" style="color:<?= $stats['refund_pending'] > 0 ? '#dc2626' : '#6b7280' ?>">
+            <?= $stats['refund_pending'] ?>
+          </div>
+          <div class="stat-label">Hoàn Tiền Chờ Xử Lý</div>
+          <?php if ($stats['refund_pending'] > 0): ?>
+          <div style="font-size:.7rem;color:#d97706;margin-top:3px">
+            ~<?= fmt($stats['refund_total']) ?>đ cần chuyển
+          </div>
+          <?php endif; ?>
+        </div>
+        <div class="stat-card">
           <div class="stat-icon" style="background:#eff6ff">💰</div>
           <div class="stat-value"><?= fmt($stats['revenue_month']) ?>đ</div>
           <div class="stat-label">Doanh Thu Tháng Này (VNĐ)</div>
@@ -916,7 +941,25 @@ select.form-ctrl{cursor:pointer}
             <td><?= date('d/m/Y', strtotime($bk['NgayCheckOut'])) ?></td>
             <td class="text-right"><strong><?= fmt($bk['TongGia']) ?>đ</strong></td>
             <td class="text-right"><?= fmt($bk['TienCoc']) ?>đ</td>
-            <td><?= statusBadge($bk['TrangThai']) ?></td>
+            <td>
+              <?= statusBadge($bk['TrangThai']) ?>
+              <?php
+                $gc       = $bk['GhiChu'] ?? '';
+                $isKhHuy  = str_contains($gc, '[HUY_KH:');
+                $hoanTien = (int)extractTag($gc, 'HOAN_TIEN');
+                $daHoan   = extractTag($gc, 'DA_HOAN') !== '';
+              ?>
+              <?php if ($isKhHuy && $bk['TrangThai'] === 'Đã hủy'): ?>
+                <br>
+                <?php if ($hoanTien > 0 && !$daHoan): ?>
+                  <span class="badge-refund-pending">💸 Chờ hoàn: <?= fmt($hoanTien) ?>đ</span>
+                <?php elseif ($daHoan): ?>
+                  <span class="badge-refunded">✅ Đã hoàn tiền</span>
+                <?php else: ?>
+                  <span style="font-size:.68rem;color:#6b7280">KH hủy — 0đ</span>
+                <?php endif; ?>
+              <?php endif; ?>
+            </td>
             <td style="white-space:nowrap">
               <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
               <form method="POST" style="display:inline">
@@ -935,8 +978,18 @@ select.form-ctrl{cursor:pointer}
                 <button type="submit" class="btn btn-cancel btn-sm">✕ Hủy</button>
               </form>
               <?php endif; ?>
-              <?php if ($bk['TrangThai'] === 'Đã hủy' || $bk['TrangThai'] === 'Đã trả phòng'): ?>
+              <?php if ($isKhHuy && $hoanTien > 0 && !$daHoan && $bk['TrangThai'] === 'Đã hủy'): ?>
+              <form method="POST" style="display:inline;margin-left:3px"
+                    onsubmit="return confirm('Xác nhận đã hoàn <?= fmt($hoanTien) ?>đ cho đặt phòng <?= esc($bk['MaDP']) ?>?')">
+                <?= csrfField() ?>
+                <input type="hidden" name="action" value="mark_refunded">
+                <input type="hidden" name="ma_dp" value="<?= esc($bk['MaDP']) ?>">
+                <button type="submit" class="btn btn-refund btn-sm">💸 Đã hoàn</button>
+              </form>
+              <?php elseif ($bk['TrangThai'] === 'Đã hủy' || $bk['TrangThai'] === 'Đã trả phòng'): ?>
+                <?php if (!$isKhHuy || $daHoan): ?>
                 <span style="font-size:.72rem;color:#94a3b8">—</span>
+                <?php endif; ?>
               <?php endif; ?>
             </td>
           </tr>

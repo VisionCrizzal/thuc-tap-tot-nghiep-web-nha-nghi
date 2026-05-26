@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 26/05/2026 (v31: PHPMailer + Email xác nhận + Forgot-password flow)
+> Cập nhật lần cuối: 26/05/2026 (v32: Hủy đặt phòng + Hoàn tiền theo chính sách)
 
 ---
 
@@ -91,6 +91,7 @@ khachsan/                          ← Root: /Applications/XAMPP/xamppfiles/htdo
 │
 ├── customer/
 │   ├── dashboard.php              ✅ Trang KH: profile, đặt phòng, lịch sử + KM + gửi email xác nhận (DONE v31)
+│   └── cancel-booking.php         ✅ Hủy đặt phòng + chính sách hoàn tiền + thông tin NH (DONE v32)
 │   ├── profile.php                ✅ KH đổi MK + cập nhật HoTen/SĐT/Email/CCCD/DiaChi/GioiTinh/NgaySinh (DONE v26)
 │   └── booking-detail.php         ✅ Chi tiết đặt phòng: DV, hóa đơn, cọc, điểm, in PDF (DONE v18)
 │
@@ -275,6 +276,7 @@ forgot-password.php (nhập email)
 | 29 | login.php — Brute-force protection | IP lockout JSON, max 5 → khóa 15 phút, dots indicator, countdown JS | v29 |
 | 30 | .htaccess — 404 route mapping + bảo mật | ErrorDocument 404; Options -Indexes; FilesMatch .md/.sql; config/.htaccess deny | v30 |
 | 31 | PHPMailer + Email xác nhận + Forgot-password | Composer PHPMailer 7.1.1; config/mailer.php (3 hàm + 3 templates); customer/dashboard.php gửi mail sau đặt phòng; forgot-password.php + reset-password.php; KHACH_HANG thêm ResetToken+ResetExpires; login.php thêm link quên MK + banner reset=1 | v31 |
+| 32 | Hủy đặt phòng + Hoàn tiền theo chính sách | customer/cancel-booking.php (policy 100/50/0%, form NH nếu refund>0, lý do); customer/dashboard.php: nút hủy → link cancel-booking.php; admin/dashboard.php: stat "Hoàn Tiền Chờ", badge [HUY_KH/HOAN_TIEN/DA_HOAN] trong bảng booking, nút "💸 Đã hoàn" + action mark_refunded | v32 |
 
 ---
 
@@ -352,6 +354,9 @@ forgot-password.php (nhập email)
 
 [ ] Email nhắc check-in         — sendCheckinReminder() đã có trong mailer.php
                                   Cần cron job hoặc script chạy tay mỗi ngày để gọi hàm này
+
+[ ] checkout.php tích hợp hoàn tiền — Khi [BALANCE_PT:] tồn tại hoặc TienCoc=TongGia,
+                                       hiển thị "Đã thanh toán online" thay vì nhập lại
 ```
 
 ---
@@ -368,6 +373,31 @@ if (!isset($_SESSION['staff_id'])) {
 }
 $isAdmin = $_SESSION['staff_role'] === 'admin';
 ```
+
+### GhiChu — Tags nội bộ (v32)
+Các tag lưu trong cột GhiChu của DAT_PHONG (bị ẩn khỏi UI khách hàng qua `cleanNote()`):
+```
+[PT_COC:method]        — Phương thức đặt cọc (tien_mat/chuyen_khoan/qr)
+[PT_FULL:method]       — Đã thanh toán toàn bộ khi đặt
+[BALANCE_PT:method]    — Thanh toán phần còn lại qua pay-balance.php
+[VAT:amount]           — Tiền VAT đã tính
+[KM:code note]         — Khuyến mãi áp dụng
+[HUY_KH:timestamp]     — KH tự hủy tại cancel-booking.php
+[HOAN_TIEN:amount]     — Số tiền cần hoàn (0 nếu không hoàn)
+[HOAN_TK:stk|nh|ten]  — Thông tin NH nhận hoàn tiền (stk|tên ngân hàng|tên chủ TK)
+[LY_DO:text]           — Lý do hủy do KH cung cấp
+[DA_HOAN:timestamp]    — Admin đánh dấu đã hoàn tiền xong
+```
+Helper `extractTag(string $haystack, string $key): string` — dùng trong admin/dashboard.php
+
+### Chính sách hoàn tiền (cancel-booking.php)
+```
+≥ 3 ngày trước check-in  → hoàn 100% TienCoc
+1–2 ngày trước check-in  → hoàn 50%  TienCoc
+Trong ngày check-in       → hoàn 0%   (không hoàn)
+TienCoc = 0               → hoàn 0đ   (chưa cọc thì chỉ hủy)
+```
+Sau khi hoàn xong → admin bấm "💸 Đã hoàn" → ghi `[DA_HOAN:timestamp]` vào GhiChu.
 
 ### PHP — Query an toàn
 ```php
