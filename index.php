@@ -325,7 +325,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:h
 .brand-name{font-family:var(--serif);font-size:1.4rem;color:var(--blue-dark);font-weight:600}
 .brand-tagline{font-size:0.62rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
 .nav-links{display:flex;gap:28px;list-style:none}
-.nav-links a{font-size:0.83rem;font-weight:500;color:var(--muted);text-decoration:none;
+.nav-links a{font-size:0.97rem;font-weight:600;color:#1e293b;text-decoration:none;
   padding:4px 0;border-bottom:2px solid transparent;transition:all .25s}
 .nav-links a:hover{color:var(--blue);border-bottom-color:var(--blue-light)}
 .nav-actions{display:flex;gap:10px;align-items:center}
