@@ -35,6 +35,55 @@ try {
     </div>');
 }
 
+// Load secrets file (chứa CCCD_ENCRYPT_KEY + SMTP credentials, gitignored)
+if (!defined('CCCD_ENCRYPT_KEY') && is_file(__DIR__ . '/mail-secret.php')) {
+    require_once __DIR__ . '/mail-secret.php';
+}
+
+// ── CCCD ENCRYPTION (AES-256-CBC) ───────────────────────────────────────────
+
+/**
+ * Mã hóa CCCD trước khi lưu vào DB.
+ * Trả về chuỗi dạng "ENC:<base64>" hoặc null nếu input rỗng.
+ */
+function encryptCCCD(?string $raw): ?string {
+    if ($raw === null || $raw === '') return null;
+    if (!defined('CCCD_ENCRYPT_KEY')) return $raw;   // fallback nếu key chưa load
+    $key = substr(hash('sha256', CCCD_ENCRYPT_KEY, true), 0, 32);
+    $iv  = random_bytes(16);
+    $enc = openssl_encrypt($raw, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+    return 'ENC:' . base64_encode($iv . $enc);
+}
+
+/**
+ * Giải mã CCCD từ DB.
+ * Hỗ trợ backward-compatible: nếu không có tiền tố "ENC:" → trả về nguyên bản (plaintext cũ).
+ */
+function decryptCCCD(?string $stored): ?string {
+    if ($stored === null || $stored === '') return null;
+    if (!str_starts_with($stored, 'ENC:')) return $stored;  // plaintext cũ, chưa mã hóa
+    if (!defined('CCCD_ENCRYPT_KEY')) return null;
+    $key  = substr(hash('sha256', CCCD_ENCRYPT_KEY, true), 0, 32);
+    $data = base64_decode(substr($stored, 4));
+    if (strlen($data) <= 16) return null;
+    $iv   = substr($data, 0, 16);
+    $enc  = substr($data, 16);
+    $dec  = openssl_decrypt($enc, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+    return $dec !== false ? $dec : null;
+}
+
+/**
+ * Hiển thị CCCD che bớt — chỉ giữ 4 số cuối: ****6789
+ * Dùng cho màn hình xem (không phải form chỉnh sửa).
+ */
+function maskCCCD(?string $stored): string {
+    if (!$stored) return '—';
+    $dec = decryptCCCD($stored) ?? $stored;
+    $len = strlen($dec);
+    if ($len <= 4) return str_repeat('*', $len);
+    return str_repeat('*', $len - 4) . substr($dec, -4);
+}
+
 // ---- Hàm tiện ích ----
 
 /**

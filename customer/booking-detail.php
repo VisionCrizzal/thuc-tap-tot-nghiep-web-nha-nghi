@@ -529,7 +529,7 @@ body{background:var(--bg);min-height:100vh}
         </div>
         <div class="info-item">
           <div class="info-label">CCCD / CMND</div>
-          <div class="info-val"><?= htmlspecialchars($bk['CCCD'] ?? '—') ?></div>
+          <div class="info-val"><?= htmlspecialchars(maskCCCD($bk['CCCD'] ?? '')) ?></div>
         </div>
       </div>
     </div>

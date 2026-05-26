@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $msgType = 'error'; $tab = 'edit_kh'; $editKhId = $maKH;
         } else {
             $pdo->prepare("UPDATE KHACH_HANG SET HoTen=?,SoDienThoai=?,Email=?,CCCD=?,DiaChi=? WHERE MaKH=?")
-                ->execute([$hoTen, $sdt ?: null, $email ?: null, $cccd ?: null, $diaChi ?: null, $maKH]);
+                ->execute([$hoTen, $sdt ?: null, $email ?: null, encryptCCCD($cccd ?: null), $diaChi ?: null, $maKH]);
             $msg = "Đã cập nhật thông tin khách hàng '$hoTen'.";
             $tab = 'customers';
         }
@@ -1045,7 +1045,7 @@ label{font-size:.78rem;font-weight:700;color:var(--blue-dark);text-transform:upp
             <div class="form-group full">
               <label for="cccd_kh">CCCD / CMND</label>
               <input type="text" id="cccd_kh" name="cccd" class="form-input"
-                value="<?= esc($editKhData['CCCD'] ?? '') ?>" placeholder="Để trống nếu không có" maxlength="20">
+                value="<?= esc(decryptCCCD($editKhData['CCCD'] ?? '') ?? '') ?>" placeholder="Để trống nếu không có" maxlength="20">
               <span class="form-hint">⚠️ Số CCCD/CMND là thông tin nhạy cảm — chỉ cập nhật khi cần thiết. Để trống = xóa CCCD.</span>
             </div>
             <div class="form-group full">

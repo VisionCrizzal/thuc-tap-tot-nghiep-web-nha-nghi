@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Nếu user KHÔNG cung cấp CCCD → giữ nguyên giá trị cũ (NULL hoặc đã có)
             // Chỉ cập nhật CCCD khi checkbox được check
             if ($coungCccd) {
-                $newCccd = $cccd !== '' ? $cccd : null;
+                $newCccd = $cccd !== '' ? encryptCCCD($cccd) : null;
             } else {
                 $newCccd = null; // xóa CCCD nếu bỏ chọn
             }
@@ -157,7 +157,7 @@ $fEmail    = esc($_POST['email']      ?? $kh['Email']         ?? '');
 $fDiaChi   = esc($_POST['dia_chi']   ?? $kh['DiaChi']        ?? '');
 $fGioiTinh = $_POST['gioi_tinh']     ?? $kh['GioiTinh']      ?? '';
 $fNgaySinh = $_POST['ngay_sinh']     ?? ($kh['NgaySinh'] ? date('Y-m-d', strtotime($kh['NgaySinh'])) : '');
-$fCccd     = esc($_POST['cccd']       ?? $kh['CCCD']          ?? '');
+$fCccd     = esc($_POST['cccd']       ?? decryptCCCD($kh['CCCD'] ?? '') ?? '');
 $hasCccd   = isset($_POST['cung_cap_cccd'])
              ? ($_POST['cung_cap_cccd'] === '1')
              : !empty($kh['CCCD']);

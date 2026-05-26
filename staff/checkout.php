@@ -655,7 +655,7 @@ body{background:var(--bg);min-height:100vh}
       <div class="inv-info-grid">
         <div class="inv-field"><div class="inv-field-lbl">Họ tên</div><div class="inv-field-val"><?= htmlspecialchars($bk['TenKH']) ?></div></div>
         <div class="inv-field"><div class="inv-field-lbl">Số điện thoại</div><div class="inv-field-val"><?= htmlspecialchars($bk['SdtKH'] ?? '—') ?></div></div>
-        <div class="inv-field"><div class="inv-field-lbl">CCCD/CMND</div><div class="inv-field-val"><?= htmlspecialchars($bk['CCCD'] ?? '—') ?></div></div>
+        <div class="inv-field"><div class="inv-field-lbl">CCCD/CMND</div><div class="inv-field-val"><?= htmlspecialchars(maskCCCD($bk['CCCD'] ?? '')) ?></div></div>
         <div class="inv-field"><div class="inv-field-lbl">Email</div><div class="inv-field-val"><?= htmlspecialchars($bk['EmailKH'] ?? '—') ?></div></div>
       </div>
     </div>

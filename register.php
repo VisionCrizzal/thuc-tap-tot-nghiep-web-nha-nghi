@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':ten'  => $form['hoTen'],
                 ':tk'   => $form['tenTK'],
                 ':mk'   => password_hash($form['matKhau'], PASSWORD_DEFAULT),
-                ':cccd' => $form['cccd'],
+                ':cccd' => encryptCCCD($form['cccd'] ?: null),
                 ':sdt'  => $form['sdt'],
                 ':email'=> $form['email'],
             ]);
