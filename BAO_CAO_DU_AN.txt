@@ -1,0 +1,648 @@
+================================================================
+   HỆ THỐNG QUẢN LÝ NHÀ NGHỈ EASYHOME
+   Báo Cáo Tổng Hợp Chức Năng Dự Án
+   Nhóm 22 — Trường ĐHKH Huế
+   Phiên bản: v33 | Ngày: 26/05/2026
+================================================================
+
+
+I. TỔNG QUAN DỰ ÁN
+────────────────────────────────────────────────────────────────
+
+Tên dự án   : Hệ thống quản lý nhà nghỉ Easyhome
+Đơn vị      : Nhà nghỉ theo giờ Easyhome, TP. Huế
+Hotline     : 0768.466.686
+Địa điểm    : 16.4602181, 107.5945346 (Google Maps)
+URL local   : http://localhost/khachsan/
+Công nghệ   : PHP 8.x + MySQL 8.x + HTML5 + CSS3 + JavaScript
+Server      : XAMPP (Apache + MySQL) trên macOS
+Thư viện    : PHPMailer 7.1.1 (Composer), Chart.js (CDN),
+              VietQR API (tạo mã QR thanh toán), Playfair Display (Google Fonts)
+
+Quy mô code : 34 file PHP (không tính vendor), ~18.924 dòng
+Cơ sở dữ liệu: khachsan_db (MySQL utf8mb4), 9 bảng, có dữ liệu mẫu
+
+
+II. KIẾN TRÚC HỆ THỐNG
+────────────────────────────────────────────────────────────────
+
+2.1. Phân quyền vai trò (3 vai trò)
+┌─────────────────┬──────────────────────────────────────────────────────┐
+│ Vai trò         │ Màn hình truy cập                                    │
+├─────────────────┼──────────────────────────────────────────────────────┤
+│ Khách hàng (KH) │ index.php, rooms.php, customer/dashboard.php,        │
+│                 │ customer/booking-detail.php, customer/profile.php,   │
+│                 │ customer/cancel-booking.php, customer/payment.php,   │
+│                 │ customer/pay-balance.php                             │
+├─────────────────┼──────────────────────────────────────────────────────┤
+│ Nhân viên (NV)  │ staff/dashboard.php, staff/checkin.php,             │
+│                 │ staff/checkout.php, staff/profile.php               │
+├─────────────────┼──────────────────────────────────────────────────────┤
+│ Quản trị (Admin)│ admin/dashboard.php, admin/rooms.php,               │
+│                 │ admin/accounts.php, admin/services.php,             │
+│                 │ admin/promotions.php, admin/invoices.php,           │
+│                 │ admin/reports.php, admin/housekeeping.php,          │
+│                 │ admin/calendar.php                                   │
+└─────────────────┴──────────────────────────────────────────────────────┘
+
+2.2. Luồng đăng nhập (login.php — 1 form thống nhất)
+  • Thử KHACH_HANG trước (tên tài khoản + mật khẩu hash)
+    → Khớp → Redirect: customer/dashboard.php
+  • Thử TAI_KHOAN sau (nhân viên nội bộ)
+    → VaiTro='nhanvien' → Redirect: staff/dashboard.php
+    → VaiTro='admin'    → Redirect: admin/dashboard.php
+  • Bảo vệ brute-force: khóa IP 15 phút sau 5 lần sai liên tiếp
+    (lưu JSON tại server, hiển thị dots indicator + countdown JS)
+
+2.3. Cấu trúc thư mục
+  /khachsan/
+  ├── config/         — db.php, session.php, mailer.php, mail-secret.php
+  ├── admin/          — 9 trang quản trị
+  ├── staff/          — 4 trang nhân viên
+  ├── customer/       — 6 trang khách hàng
+  ├── assets/images/  — 1 logo + 6 ảnh phòng + 4 ảnh gallery
+  └── vendor/         — PHPMailer (Composer)
+
+
+III. CƠ SỞ DỮ LIỆU (9 bảng)
+────────────────────────────────────────────────────────────────
+
+┌──────────────────┬──────────────────────────────────────────────────────┐
+│ Tên bảng         │ Mô tả & trường chính                                │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ PHONG            │ Phòng: MaPhong, LoaiPhong (Đơn/Đôi/Gia đình/VIP),  │
+│                  │ GiaPhong, SoNguoiToiDa, TinhTrang, MoTa, Tang       │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ KHACH_HANG       │ KH: HoTen, TenTaiKhoan, MatKhau (password_hash),   │
+│                  │ CCCD (AES-256 mã hóa), SoDienThoai, Email,          │
+│                  │ GioiTinh, NgaySinh, DiaChi, TichDiem,               │
+│                  │ ResetToken, ResetExpires (forgot-password)           │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ NHAN_VIEN        │ NV: HoTen, SoDienThoai, Email, ChucVu, NgayVaoLam  │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ TAI_KHOAN        │ Tài khoản đăng nhập NV: TenTK, MatKhau (hash),      │
+│                  │ VaiTro (admin/nhanvien), MaNV (FK), TrangThai        │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ DAT_PHONG        │ Đặt phòng: MaDP, MaKH, MaPhong, NgayCheckIn,       │
+│                  │ NgayCheckOut, SoLuongKhach, TienCoc, TongGia,        │
+│                  │ TrangThai, GhiChu (tag nội bộ), MaNV_XuLy           │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ DICH_VU          │ Dịch vụ: MaDV, TenDV, GiaDV, MoTa, TrangThai       │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ DAT_DICH_VU      │ Liên kết đặt phòng — dịch vụ: MaDP, MaDV, SoLuong  │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ HOA_DON          │ Hóa đơn: MaHD, MaDP, MaNV, TienPhong, TienDichVu,  │
+│                  │ PhuPhi, TienCocDaThu, TongTien, PhuongThucTT         │
+├──────────────────┼──────────────────────────────────────────────────────┤
+│ KHUYEN_MAI       │ KM: MaKM, TenKM, LoaiKM (PhanTram/SoTien),         │
+│                  │ GiaTriKM, DieuKien, NgayBatDau, NgayKetThuc          │
+└──────────────────┴──────────────────────────────────────────────────────┘
+
+Hệ thống tag nội bộ (cột GhiChu của DAT_PHONG):
+  [PT_COC:method]       — Phương thức đặt cọc (tien_mat/chuyen_khoan/qr)
+  [PT_FULL:method]      — Khách thanh toán 100% khi đặt phòng
+  [BALANCE_PT:method]   — Thanh toán phần còn lại qua pay-balance.php
+  [VAT:amount]          — Tiền VAT đã tính (1%)
+  [KM:code note]        — Khuyến mãi đã áp dụng
+  [HUY_KH:timestamp]    — Khách tự hủy đặt phòng
+  [HOAN_TIEN:amount]    — Số tiền cần hoàn (theo chính sách)
+  [HOAN_TK:stk|nh|ten] — Thông tin ngân hàng nhận hoàn tiền
+  [LY_DO:text]          — Lý do hủy do khách cung cấp
+  [DA_HOAN:timestamp]   — Admin đánh dấu đã hoàn tiền xong
+
+
+IV. CHỨC NĂNG CHI TIẾT THEO TRANG
+────────────────────────────────────────────────────────────────
+
+A. TRANG CÔNG KHAI (không cần đăng nhập)
+────────────────────────────────────────────────────────────────
+
+A1. Trang chủ (index.php) — ~1.207 dòng
+  ✦ Slideshow 6 ảnh thật phòng (tự động + điều hướng bằng nút)
+  ✦ Navbar responsive: logo + menu + user chip (tên đăng nhập + dropdown khi đã đăng nhập)
+  ✦ Dropdown user: link tài khoản + nút đăng xuất
+  ✦ Giới thiệu khách sạn + nút "Đặt Phòng Ngay"
+  ✦ Section loại phòng: 4 loại card với SVG illustration 3D giường:
+      - Phòng Đơn: 1 gối, nền xanh nhạt
+      - Phòng Đôi: 2 gối, nền xanh
+      - Phòng Gia Đình: 2 giường riêng, nền xanh lá
+      - Phòng VIP: 2 gối + cánh hoa đỏ, nền tím
+  ✦ Gallery 4 ảnh (popup lightbox)
+  ✦ Google Maps embed (tọa độ thực tế)
+  ✦ Form tìm kiếm phòng nhanh (check-in/check-out)
+  ✦ Scroll reveal animation cho các section
+  ✦ Footer với thông tin liên hệ
+
+A2. Đăng nhập (login.php) — ~475 dòng
+  ✦ 1 form thống nhất, tự nhận diện vai trò từ database
+  ✦ Bảo vệ brute-force: khóa IP 15 phút sau 5 lần sai
+  ✦ Hiển thị dots indicator + countdown đếm ngược
+  ✦ Link "Quên mật khẩu" → forgot-password.php
+  ✦ Banner thành công khi reset mật khẩu (?reset=1)
+  ✦ Hỗ trợ ?next= redirect sau khi đăng nhập
+
+A3. Đăng ký (register.php)
+  ✦ Form đăng ký tài khoản khách hàng
+  ✦ Validate: HoTen, TenTaiKhoan (UNIQUE), MatKhau (độ mạnh),
+              SoDienThoai, Email, CCCD (tùy chọn)
+  ✦ password_hash() cho mật khẩu
+  ✦ Sinh MaKH tự động (KH001, KH002,...)
+  ✦ Redirect đến customer/dashboard.php sau khi đăng ký
+
+A4. Tìm kiếm phòng (rooms.php)
+  ✦ Form tìm kiếm check-in/check-out + số khách
+  ✦ Truy vấn phòng trống (loại trừ đã đặt trong khoảng thời gian)
+  ✦ Filter theo loại phòng (Tất cả / Đơn / Đôi / Gia đình / VIP)
+  ✦ Card phòng: SVG giường, giá/đêm, sức chứa, mô tả
+  ✦ Nút "Đặt Ngay" → booking.php (redirect KH đã đăng nhập / landing nếu chưa)
+  ✦ Hiệu ứng scroll reveal + animate filter
+
+A5. Quên mật khẩu (forgot-password.php + reset-password.php)
+  ✦ forgot-password.php: nhập email → tạo token 64 ký tự (bin2hex(32))
+    → lưu ResetToken + ResetExpires (1 giờ) vào KHACH_HANG
+    → gửi email link reset qua PHPMailer
+  ✦ reset-password.php: xác minh token còn hạn
+    → form đổi mật khẩu + strength bar (JS)
+    → UPDATE MatKhau + xóa token → PRG redirect login.php?reset=1
+
+A6. Booking trung gian (booking.php)
+  ✦ Nếu KH đã đăng nhập: chuyển thẳng đến form đặt phòng trong customer/dashboard.php
+  ✦ Nếu chưa đăng nhập: landing page giới thiệu + nút đăng nhập/đăng ký
+
+A7. Trang lỗi 404 (404.php)
+  ✦ Giao diện branded với logo Easyhome
+  ✦ Auto-redirect về trang chủ sau 15 giây (countdown)
+  ✦ Smart back link (history.back nếu có referrer)
+
+
+B. TRANG KHÁCH HÀNG (cần đăng nhập)
+────────────────────────────────────────────────────────────────
+
+B1. Dashboard khách hàng (customer/dashboard.php) — ~1.040 dòng
+  ✦ Tab 1 — HỒ SƠ:
+      - Hiển thị thông tin cá nhân: HoTen, SĐT, Email, CCCD (che 4 số đầu)
+      - Ngày sinh, giới tính, địa chỉ, quốc tịch
+      - Hiển thị điểm tích lũy (TichDiem) với icon huy hiệu
+      - Link đến customer/profile.php để chỉnh sửa
+  ✦ Tab 2 — ĐẶT PHÒNG:
+      - Form đặt phòng: chọn phòng (dropdown phòng trống), check-in/out, số khách
+      - Chọn dịch vụ đi kèm (multiple checkbox)
+      - Chọn khuyến mãi (dropdown KM đang áp dụng, tính giảm giá tự động)
+      - Tính tiền cọc (30% TongGia)
+      - Tính VAT 1%
+      - Nút "Tiếp Theo" → lưu pending_booking vào session → redirect payment.php
+  ✦ Tab 3 — LỊCH SỬ:
+      - Bảng tất cả đơn đặt phòng của KH
+      - Badge trạng thái màu: Chờ xác nhận / Đã nhận phòng / Đã trả phòng / Đã hủy
+      - Nút xem chi tiết → booking-detail.php
+      - Nút "Hủy" (chỉ khi trạng thái Chờ xác nhận) → cancel-booking.php
+      - Nút "Thanh toán phần còn lại" (khi có phần chưa trả) → pay-balance.php
+      - Banner thành công sau khi đặt phòng (booking_success session flash)
+      - Banner thành công sau khi thanh toán bù (balance_success session flash)
+  ✦ Tự động gửi email xác nhận đặt phòng qua PHPMailer sau INSERT
+
+B2. Thanh toán khi đặt (customer/payment.php) — ~714 dòng
+  ✦ Stepper 3 bước: Điền thông tin → Thanh toán → Hoàn tất
+  ✦ Toggle chọn mức thanh toán:
+      - Chỉ đặt cọc 30% (tien_mat / chuyen_khoan / qr_vietqr)
+      - Thanh toán toàn bộ 100% (chuyen_khoan / qr_vietqr, không có tien_mat)
+  ✦ 3 phương thức thanh toán:
+      - Tiền mặt khi đến: hiển thị địa chỉ + hotline
+      - Chuyển khoản: hiển thị đầy đủ STK, tên TK, ngân hàng, nội dung CK
+      - QR VietQR: tạo QR động từ API vietqr.io (có tích hợp số tiền)
+  ✦ Nút sao chép STK, số tiền, nội dung CK
+  ✦ Re-check phòng còn trống ngay trước khi INSERT (tránh race condition)
+  ✦ Ghi tag [PT_COC:] hoặc [PT_FULL:] vào GhiChu
+  ✦ Gửi email xác nhận sau khi đặt thành công
+  ✦ Chống double-submit (disable button khi submit)
+
+B3. Thanh toán phần còn lại (customer/pay-balance.php) — ~449 dòng
+  ✦ Cho phép KH thanh toán phần còn lại cho đơn đang chờ hoặc đã nhận phòng
+  ✦ 2 phương thức: Chuyển khoản ngân hàng / QR VietQR
+  ✦ Tạo QR động với số tiền còn lại (TongGia - TienCoc)
+  ✦ Ghi tag [BALANCE_PT:method] vào GhiChu
+  ✦ UPDATE TienCoc = TongGia (đánh dấu đã trả đủ)
+  ✦ Flash message thành công khi quay lại dashboard
+
+B4. Chi tiết đặt phòng (customer/booking-detail.php)
+  ✦ Thông tin đầy đủ: phòng, loại, tầng, check-in/out, số đêm
+  ✦ Danh sách dịch vụ đã đặt + đơn giá
+  ✦ Bảng tổng tiền: phòng, dịch vụ, giảm giá, VAT, tổng cộng
+  ✦ Thông tin hóa đơn (nếu đã check-out): MaHD, ngày lập, phương thức TT
+  ✦ Tiền cọc đã đặt + số điểm tích lũy được
+  ✦ Nút in hóa đơn PDF (window.print() + CSS @media print)
+
+B5. Hủy đặt phòng (customer/cancel-booking.php) — ~đã đọc đầy đủ
+  ✦ Kiểm tra quyền hủy: chỉ đơn "Chờ xác nhận" của KH đó
+  ✦ Tính chính sách hoàn tiền:
+      ≥ 3 ngày trước check-in  → hoàn 100% TienCoc
+      1–2 ngày trước check-in  → hoàn 50%  TienCoc
+      Trong ngày check-in       → hoàn 0%   (không hoàn)
+      TienCoc = 0               → hoàn 0đ   (chỉ hủy đơn)
+  ✦ Form lý do hủy (textarea bắt buộc)
+  ✦ Form thông tin ngân hàng nhận hoàn tiền (nếu refund > 0):
+      STK, Tên ngân hàng, Tên chủ tài khoản
+  ✦ Ghi tag [HUY_KH:], [HOAN_TIEN:], [HOAN_TK:], [LY_DO:] vào GhiChu
+  ✦ Đổi TrangThai → 'Đã hủy' + hiển thị trang thành công
+
+B6. Hồ sơ khách hàng (customer/profile.php)
+  ✦ Form chỉnh sửa: HoTen, SĐT, Email, DiaChi, GioiTinh, NgaySinh
+  ✦ CCCD tùy chọn (mã hóa AES-256-CBC trước khi lưu)
+  ✦ Đổi mật khẩu với strength bar (Yếu/Trung bình/Mạnh/Rất mạnh)
+  ✦ Validation phía server + thông báo thành công/lỗi
+
+
+C. TRANG NHÂN VIÊN (cần đăng nhập vai trò nhanvien)
+────────────────────────────────────────────────────────────────
+
+C1. Dashboard nhân viên (staff/dashboard.php) — ~752 dòng
+  ✦ Thẻ thống kê: Đặt phòng hôm nay / Đang ở / Trống / Chờ xác nhận
+  ✦ Tab QUẢN LÝ ĐẶT PHÒNG:
+      - Bảng tất cả đặt phòng (MaDP, KH, Phòng, Check-in/out, Trạng thái)
+      - Badge màu theo trạng thái
+      - Nút "Check-in" → staff/checkin.php?dp=xxx
+      - Nút "Check-out" → staff/checkout.php?dp=xxx
+      - Nút "Hủy" → đổi TrangThai='Đã hủy'
+  ✦ Tab SƠ ĐỒ PHÒNG:
+      - Grid phòng theo tầng (Tầng 1/2/3)
+      - Card màu theo TinhTrang: Trống (xanh) / Đang ở (đỏ) / Đang dọn (vàng) / Bảo trì (xám)
+      - SVG giường illustration
+  ✦ Tab THÔNG TIN NHÂN VIÊN:
+      - Tên, chức vụ, SĐT, email, ngày vào làm
+      - Link đến staff/profile.php
+  ✦ Sidebar với đầy đủ link điều hướng
+
+C2. Check-in (staff/checkin.php) — ~786 dòng
+  ✦ Load thông tin đặt phòng + khách hàng
+  ✦ Hiển thị thông tin đặt phòng: KH, phòng, check-in/out, số đêm
+  ✦ Chọn thêm dịch vụ (checkbox, cộng vào DAT_DICH_VU)
+  ✦ Chọn khuyến mãi (dropdown + tính giảm giá)
+  ✦ Thu tiền cọc: 6 phương thức:
+      Tiền mặt / Thẻ ngân hàng / QR VietQR /
+      Apple Pay / Google Pay / Samsung Pay
+  ✦ Nhập số tiền cọc tùy chỉnh
+  ✦ Preview tổng tiền (cập nhật real-time qua JS)
+  ✦ Xử lý POST: INSERT DAT_DICH_VU + UPDATE DAT_PHONG (TienCoc, TrangThai='Đã nhận phòng')
+                + UPDATE PHONG (TinhTrang='Đang ở')
+
+C3. Check-out (staff/checkout.php) — ~928 dòng
+  ✦ Load thông tin đặt phòng + hóa đơn (nếu đã có)
+  ✦ Tính số đêm thực tế + phí phụ thêm (trả muộn, thêm người)
+  ✦ Tính tổng: TienPhong + TienDichVu + PhuPhi - TienCoc
+  ✦ Phát hiện thanh toán online:
+      - Nếu conLai ≤ 0 (đã trả đủ qua cọc/online):
+        → Banner xanh "Đã thanh toán đầy đủ"
+        → Ẩn form chọn phương thức
+        → Nút xanh lá "✅ Xác Nhận Check-out (Đã thanh toán đầy đủ)"
+      - Nếu conLai > 0 và có [BALANCE_PT:]:
+        → Hiện cảnh báo vàng để NV kiểm tra trước khi thu thêm
+      - Nếu conLai > 0 thông thường:
+        → Form chọn 6 phương thức thanh toán (Tiền mặt/Thẻ/QR/Apple/Google/Samsung Pay)
+  ✦ Xử lý POST: INSERT HOA_DON + UPDATE DAT_PHONG (TrangThai='Đã trả phòng')
+                + UPDATE PHONG (TinhTrang='Đang dọn')
+                + Cộng điểm TichDiem cho KH (100.000đ = 1 điểm)
+  ✦ Màn hình done: hóa đơn đầy đủ (có thể in PDF)
+  ✦ Hiển thị nhãn "Đã Thanh Toán Đầy Đủ (qua tiền cọc / online)" khi phù hợp
+
+C4. Hồ sơ nhân viên (staff/profile.php)
+  ✦ Cập nhật SĐT và email
+  ✦ Đổi mật khẩu (với strength bar)
+  ✦ Hiển thị thông tin NV đang đăng nhập
+
+
+D. TRANG QUẢN TRỊ — ADMIN (cần đăng nhập vai trò admin)
+────────────────────────────────────────────────────────────────
+
+D1. Dashboard admin (admin/dashboard.php) — ~1.349 dòng
+  ✦ Thẻ thống kê tổng quan:
+      Tổng đặt phòng / Đang ở / Chờ xác nhận / Doanh thu tháng này /
+      Hoàn Tiền Chờ Xử Lý (đếm đơn hủy có hoàn tiền)
+  ✦ Tab QUẢN LÝ ĐẶT PHÒNG:
+      - Bảng đầy đủ tất cả đặt phòng hệ thống
+      - Badge trạng thái + badge hoàn tiền: [HUY_KH] / [HOAN_TIEN] / [DA_HOAN]
+      - Nút "💸 Đã hoàn" để đánh dấu đã hoàn tiền (ghi [DA_HOAN:timestamp])
+      - Filter theo trạng thái, tìm kiếm theo MaDP/KH
+  ✦ Tab QUẢN LÝ NHÂN VIÊN:
+      - Danh sách NV + tài khoản đăng nhập
+      - Thêm NV mới + tài khoản đồng thời
+      - Khóa/mở tài khoản NV
+      - Nút "Sửa" → modal chỉnh sửa thông tin NV (admin/accounts.php)
+  ✦ Sidebar đầy đủ với link đến mọi trang admin
+
+D2. Quản lý phòng (admin/rooms.php)
+  ✦ Grid sơ đồ phòng theo tầng (Tầng 1/2/3)
+  ✦ CRUD phòng: Thêm / Sửa / Xóa (soft delete)
+  ✦ Đổi trạng thái phòng nhanh (dropdown inline)
+  ✦ Filter theo loại phòng / trạng thái
+  ✦ Thống kê nhanh: Trống / Đang ở / Đang dọn / Bảo trì
+
+D3. Quản lý tài khoản (admin/accounts.php)
+  ✦ Tab KHÁCH HÀNG:
+      - Danh sách KH + TrangThai
+      - Khóa/mở tài khoản KH (TrangThai toggle)
+      - Nút "✏️ Sửa" → modal chỉnh sửa thông tin KH (HoTen, SĐT, Email, DiaChi)
+  ✦ Tab NHÂN VIÊN (tài khoản nội bộ):
+      - Danh sách tài khoản NV + vai trò + lần đăng nhập cuối
+      - Thêm tài khoản mới (chọn MaNV, vai trò, đặt MK)
+      - Khóa/mở tài khoản
+      - Nút "✏️ Sửa" → modal chỉnh sửa thông tin NV
+
+D4. Quản lý dịch vụ (admin/services.php)
+  ✦ Danh sách dịch vụ với thẻ thống kê (Tổng / Khả dụng / Tạm ngừng)
+  ✦ Thêm dịch vụ: TenDV, GiaDV, MoTa, emoji/icon, HinhAnh (URL)
+  ✦ Sửa dịch vụ (modal inline)
+  ✦ Toggle TrangThai nhanh (Khả dụng / Tạm ngừng)
+  ✦ Xóa dịch vụ (có xác nhận)
+  ✦ Preview ảnh + emoji picker
+
+D5. Quản lý khuyến mãi (admin/promotions.php)
+  ✦ Thẻ thống kê: Tổng / Đang áp dụng / Hết hạn / Tạm ngừng
+  ✦ Filter tab: Tất cả / Đang áp dụng / Hết hạn / Tạm ngừng
+  ✦ Thêm KM: TenKM, LoaiKM (PhanTram/SoTien), GiaTriKM, DieuKien,
+             NgayBatDau, NgayKetThuc
+  ✦ Sửa / Xóa KM
+  ✦ Toggle trạng thái nhanh
+  ✦ Hiển thị EffStatus (trạng thái hiệu lực thực tế dựa trên ngày)
+
+D6. Quản lý hóa đơn (admin/invoices.php) — ~817 dòng
+  ✦ 5 thẻ thống kê: Tổng HĐ / Đã TT / Chưa TT / Doanh thu / Trung bình
+  ✦ Bảng hóa đơn với filter (Tất cả / Đã TT / Chưa TT) + search
+  ✦ Modal chi tiết: MaHD, MaDP, KH, NV, TienPhong, TienDV, PhuPhi,
+                    TienCoc, TongTien, PhuongThucTT, NgayLap
+  ✦ Nút "✓ Đánh dấu Đã TT" / "○ Đánh dấu Chưa TT" (toggle nhanh)
+  ✦ In hóa đơn PDF (window.print() + @media print)
+
+D7. Báo cáo doanh thu (admin/reports.php) — ~834 dòng
+  ✦ Bộ lọc: năm + tháng bắt đầu/kết thúc
+  ✦ 4 thẻ thống kê: Tổng doanh thu / Tổng HĐ / Trung bình / Tháng cao nhất
+  ✦ Biểu đồ Chart.js: doanh thu theo tháng (line chart + bar chart toggle)
+  ✦ Top 5 phòng doanh thu cao nhất
+  ✦ Top 5 dịch vụ được đặt nhiều nhất
+  ✦ Top 5 nhân viên xử lý nhiều HĐ nhất
+  ✦ Bảng doanh thu chi tiết 12 tháng
+  ✦ Nút xuất CSV (toàn bộ dữ liệu báo cáo)
+
+D8. Quản lý dọn phòng (admin/housekeeping.php)
+  ✦ Hiển thị card tất cả phòng với TinhTrang hiện tại
+  ✦ Đổi TinhTrang nhanh: Trống / Đang ở / Đang dọn / Bảo trì
+  ✦ Panel phân công nhân viên dọn phòng
+  ✦ Bộ lọc theo trạng thái phòng
+
+D9. Lịch đặt phòng (admin/calendar.php)
+  ✦ Hiển thị lưới calendar tháng (Month grid)
+  ✦ Mỗi ô ngày hiển thị số lượng đặt phòng trong ngày đó
+  ✦ Click vào ngày → xem chi tiết danh sách đặt phòng hôm đó (modal)
+  ✦ Điều hướng tháng trước/sau bằng nút hoặc phím ← →
+  ✦ Highlight ngày hôm nay
+
+
+V. HỆ THỐNG BẢO MẬT
+────────────────────────────────────────────────────────────────
+
+5.1. Xác thực & Phân quyền
+  • Mật khẩu hash bằng password_hash() (Bcrypt, PHP built-in)
+  • Session name riêng: EASYHOME_SID (tránh conflict với phpMyAdmin)
+  • Cookie SameSite=Lax (chống CSRF cơ bản)
+  • Kiểm tra session đầu mỗi trang protected (redirect nếu chưa đăng nhập)
+  • Phân quyền theo staff_role (admin/nhanvien) và kh_role (khachhang)
+
+5.2. Bảo vệ CSRF
+  • csrfToken(): sinh token 64 ký tự hex ngẫu nhiên, lưu vào session
+  • csrfField(): nhúng hidden input vào mọi form POST
+  • csrfVerify(): kiểm tra hash_equals(), die(403) nếu sai
+  → Áp dụng cho TẤT CẢ form POST trong toàn hệ thống
+
+5.3. Bảo vệ Brute-force
+  • Theo dõi số lần sai theo IP, lưu JSON tại server
+  • Sau 5 lần sai: khóa IP 15 phút
+  • Hiển thị dots indicator (●●●●● / ○) + countdown JS
+  • Tự động mở khóa sau 15 phút
+
+5.4. SQL Injection
+  • 100% truy vấn dùng PDO Prepared Statements (không nối chuỗi SQL)
+  • PDO::ATTR_EMULATE_PREPARES = false (dùng true prepared statements)
+
+5.5. XSS Prevention
+  • htmlspecialchars() cho mọi output dữ liệu từ DB ra HTML
+  • cleanNote(): hàm lọc bỏ tag nội bộ khỏi GhiChu trước khi hiển thị cho KH
+
+5.6. Mã hóa CCCD (AES-256-CBC)
+  • encryptCCCD(): mã hóa trước khi lưu → "ENC:<base64(iv+cipher)>"
+  • decryptCCCD(): giải mã khi cần hiển thị đầy đủ (form chỉnh sửa)
+  • maskCCCD(): che ****xxxx (chỉ lộ 4 số cuối) khi xem
+  • Key 64 ký tự hex, lưu trong config/mail-secret.php (gitignored)
+  • Backward-compatible: dữ liệu plaintext cũ không bị lỗi
+
+5.7. Bảo vệ file (.htaccess)
+  • ErrorDocument 404 → 404.php (route toàn bộ lỗi 404)
+  • Options -Indexes (cấm duyệt thư mục)
+  • FilesMatch .md/.sql → Require all denied (không xem CLAUDE.md, hotel_db.sql)
+  • config/.htaccess: Require all denied (cấm HTTP vào thư mục config)
+
+5.8. Email bảo mật
+  • SMTP Gmail qua STARTTLS (port 587)
+  • App Password (không dùng mật khẩu Gmail trực tiếp)
+  • ssl_verify_peer = false (fix XAMPP local OpenSSL)
+  • Credentials lưu config/mail-secret.php (gitignored, không commit)
+
+
+VI. HỆ THỐNG EMAIL (PHPMailer)
+────────────────────────────────────────────────────────────────
+
+Package  : phpmailer/phpmailer v7.1.1 (Composer)
+SMTP     : smtp.gmail.com:587 STARTTLS
+Từ       : nguyengocvi94tn@gmail.com
+
+3 hàm gửi email (config/mailer.php):
+┌────────────────────────────────┬────────────────────────────────────────┐
+│ Hàm                            │ Nội dung email                         │
+├────────────────────────────────┼────────────────────────────────────────┤
+│ sendBookingConfirmation()      │ Xác nhận đặt phòng thành công          │
+│                                │ (MaDP, phòng, check-in/out, tổng tiền) │
+├────────────────────────────────┼────────────────────────────────────────┤
+│ sendCheckinReminder()          │ Nhắc nhở check-in ngày mai             │
+│                                │ (chưa có cron job tự động)             │
+├────────────────────────────────┼────────────────────────────────────────┤
+│ sendPasswordReset()            │ Link đặt lại mật khẩu (token 1 giờ)   │
+│                                │ → reset-password.php?token=xxx         │
+└────────────────────────────────┴────────────────────────────────────────┘
+
+Template email: HTML responsive, có logo + thông tin đặt phòng đầy đủ
+
+
+VII. GIAO DIỆN & THIẾT KẾ
+────────────────────────────────────────────────────────────────
+
+7.1. Fonts
+  • Body    : Calibri, 'Calibri Light', Arial, sans-serif (system font)
+  • Heading : 'Playfair Display', Georgia, serif (Google Fonts)
+
+7.2. Color Palette (CSS Variables)
+  --blue:       #1d4ed8  (màu chính)
+  --blue-light: #3b82f6  (hover/icon)
+  --blue-dark:  #1e3a8a  (header/nền đậm)
+  --blue-pale:  #eff6ff  (nền card nhạt)
+  --blue-mid:   #dbeafe  (badge)
+  --bg:         #f0f6ff  (nền section)
+  --text:       #1e293b
+  --muted:      #64748b
+
+7.3. Trạng thái phòng (màu)
+  Trống: #3b82f6 | Đang ở: #ef4444 | Đang dọn: #f59e0b | Bảo trì: #6b7280
+
+7.4. SVG Giường 3D (inline PHP functions — index.php)
+  singleBedSVG()       → Phòng Đơn  (1 gối, nền xanh nhạt)
+  doubleBedSVG(false)  → Phòng Đôi  (2 gối, nền xanh)
+  doubleBedSVG(true)   → Phòng VIP  (2 gối + cánh hoa đỏ, nền tím)
+  familyBedSVG()       → Phòng Gia Đình (2 giường riêng, nền xanh lá)
+  getBedSVG($loai)     → Dispatcher — tái sử dụng trong mọi trang
+
+7.5. UX Features
+  • Scroll reveal animation (IntersectionObserver)
+  • Filter tab với animation
+  • Password strength bar (JS, 4 mức: Yếu/Trung bình/Mạnh/Rất mạnh)
+  • Stepper 3 bước trong quy trình đặt phòng
+  • QR Code động (vietqr.io API, cập nhật theo số tiền)
+  • Nút sao chép clipboard (STK, số tiền, nội dung CK)
+  • Responsive design (media queries cho mobile)
+  • Sticky navbar + topbar
+  • Sidebar điều hướng cho admin/staff pages
+
+
+VIII. QUY TRÌNH NGHIỆP VỤ CHÍNH
+────────────────────────────────────────────────────────────────
+
+8.1. Quy trình đặt phòng (KH online)
+  1. KH tìm phòng trống (rooms.php / form trang chủ)
+  2. Chọn phòng → booking.php → đăng nhập nếu chưa
+  3. Điền thông tin đặt phòng + chọn DV + chọn KM (customer/dashboard.php)
+  4. Xem tóm tắt + chọn mức TT (30% cọc / 100%) (customer/payment.php)
+  5. Chọn phương thức TT (Tiền mặt / CK / QR VietQR)
+  6. Xác nhận → INSERT DAT_PHONG + DAT_DICH_VU → gửi email
+  7. KH xem lịch sử + có thể thanh toán phần còn lại (pay-balance.php)
+
+8.2. Quy trình check-in (NV)
+  1. KH đến → NV vào staff/dashboard.php → tìm đặt phòng
+  2. Nút "Check-in" → staff/checkin.php
+  3. NV xác nhận thông tin + chọn thêm DV + thu cọc
+  4. Xác nhận → UPDATE TrangThai='Đã nhận phòng' + PHONG='Đang ở'
+
+8.3. Quy trình check-out (NV)
+  1. KH muốn trả phòng → NV vào staff/checkout.php
+  2. Hệ thống tính tự động: tiền phòng + DV + phụ phí - cọc đã thu
+  3. Nếu đã TT đủ online: hiển thị banner xanh, không cần thu thêm
+  4. Nếu còn thiếu: NV chọn PT nhận tiền + xác nhận
+  5. Hệ thống INSERT HOA_DON + cộng điểm TichDiem + PHONG='Đang dọn'
+  6. In hóa đơn PDF
+
+8.4. Quy trình hủy phòng (KH)
+  1. KH vào dashboard → tab Lịch sử → Nút "Hủy"
+  2. cancel-booking.php: xem chính sách + nhập lý do + điền TK hoàn tiền
+  3. Xác nhận → TrangThai='Đã hủy' + ghi tag [HUY_KH] + [HOAN_TIEN] + [HOAN_TK]
+  4. Admin thấy badge [HUY_KH] trong dashboard → xử lý hoàn tiền
+  5. Admin bấm "💸 Đã hoàn" → ghi [DA_HOAN:timestamp]
+
+8.5. Quy trình quên mật khẩu
+  1. KH bấm "Quên mật khẩu" trên login.php
+  2. Nhập email → hệ thống tạo token 64 ký tự, hết hạn 1 giờ
+  3. Email gửi link: /khachsan/reset-password.php?token=xxx
+  4. KH nhấp link → form đổi MK + strength bar
+  5. Lưu MK mới (hash) + xóa token → redirect login.php?reset=1
+
+
+IX. CẤU HÌNH KỸ THUẬT
+────────────────────────────────────────────────────────────────
+
+Session:
+  session_name('EASYHOME_SID')    — tránh conflict phpMyAdmin
+  cookie_samesite: Lax            — chống CSRF
+  cookie_httponly: true
+  session.gc_maxlifetime: default
+
+Database:
+  PDO MySQL, charset utf8mb4 (hỗ trợ đầy đủ tiếng Việt + emoji)
+  Tất cả quan hệ FK với ON UPDATE CASCADE
+
+Apache (.htaccess):
+  ErrorDocument 404 /khachsan/404.php
+  Options -Indexes
+  Deny access: *.md, *.sql, config/
+
+Composer:
+  phpmailer/phpmailer: ^6.9
+
+
+X. DỮ LIỆU MẪU CÓ SẴN
+────────────────────────────────────────────────────────────────
+
+Phòng (9 phòng):
+  Tầng 1: P101 (Đơn 500k), P102 (Đơn 500k), P103 (Đơn 550k)
+  Tầng 2: P201 (Đôi 800k), P202 (Đôi 850k), P203 (Đôi 900k)
+  Tầng 3: P301 (Gia đình 1.5M), P302 (VIP 2.5M), P303 (VIP 2.8M)
+
+Nhân viên (3 người):
+  NV001 — Nguyễn Văn An (Quản lý) — TK: admin
+  NV002 — Trần Thị Bình (Lễ tân)  — TK: letan01
+  NV003 — Lê Minh Cường (Lễ tân)  — TK: letan02
+  Mật khẩu: "password" (hash Laravel default)
+
+Dịch vụ (5 loại):
+  Spa & Massage (350k), Giặt ủi (80k), Xe đưa đón sân bay (250k),
+  Ăn sáng tại phòng (120k), Thuê xe đạp (50k)
+
+Khuyến mãi (6 loại đang áp dụng 2026):
+  Đặt sớm 10% (>1 tuần), Đặt sớm 15% (>2 tháng),
+  Lưu trú dài 10% (>3 ngày), Lưu trú dài 15% (>5 ngày),
+  Nhóm 3-4 phòng 10%, Nhóm 5+ phòng 15%
+
+
+XI. THỐNG KÊ DỰ ÁN
+────────────────────────────────────────────────────────────────
+
+  Số file PHP (không tính vendor) : 34 file
+  Tổng dòng code PHP              : ~18.924 dòng
+  Số bảng database                : 9 bảng
+  Số trang chức năng              : 27 trang (không tính vendor)
+  Số phiên bản cập nhật           : v33
+
+  Phân bố theo module:
+    Admin pages  : 9 trang
+    Staff pages  : 4 trang
+    Customer pages: 6 trang
+    Public pages : 7 trang (index, login, register, rooms, booking,
+                            forgot-password, reset-password, 404)
+    Config/helper: 4 file (db.php, session.php, mailer.php, mail-secret.php)
+
+
+XII. CÁC ĐIỂM NỔI BẬT KỸ THUẬT
+────────────────────────────────────────────────────────────────
+
+  ✦ Thanh toán online nhận diện thông minh: checkout.php tự phát hiện
+    khi KH đã trả đủ qua cọc hoặc online, ẩn form thanh toán cho NV
+
+  ✦ Tag system GhiChu: lưu metadata phức tạp (PT, KM, hủy, hoàn tiền)
+    trong 1 cột TEXT với pattern [KEY:value], có hàm extractTag()
+
+  ✦ Mã hóa CCCD AES-256-CBC với IV ngẫu nhiên mỗi lần mã hóa,
+    backward-compatible với dữ liệu plaintext cũ
+
+  ✦ QR VietQR động: tạo URL QR code từ vietqr.io API với số tiền
+    và nội dung chuyển khoản được điền sẵn, cập nhật JS khi đổi mức TT
+
+  ✦ PRG pattern (Post/Redirect/Get): áp dụng cho checkout, booking,
+    cancel, pay-balance để tránh double-submit khi reload
+
+  ✦ Session flash message: booking_success, balance_success dùng $_SESSION
+    một lần rồi xóa, tránh hiện lại khi reload
+
+  ✦ Race condition prevention: re-check phòng còn trống ngay trong
+    transaction INSERT tại payment.php
+
+  ✦ Responsive design: media queries tại breakpoint 700-740px cho
+    mọi trang khách hàng + form thanh toán
+
+
+================================================================
+   Kết thúc báo cáo — Easyhome Hotel Management System v33
+   Nhóm 22 — Trường ĐHKH Huế — 26/05/2026
+================================================================
