@@ -210,8 +210,8 @@ sendPasswordReset(email, name, resetLink): bool        // link reset mật khẩ
 
 // SMTP: smtp.gmail.com:587 STARTTLS
 // Tài khoản gửi: nguyengocvi94tn@gmail.com
-// App Password:  ***REMOVED***   ← tạo tại myaccount.google.com → Bảo mật → App passwords
-// Tên ứng dụng: Easyhome (đặt khi tạo App Password)
+// App Password: xem config/mail-secret.php (gitignored — KHÔNG commit)
+// Tạo App Password: myaccount.google.com/apppasswords → Tên ứng dụng: Easyhome
 // SSL verify_peer: false (fix cho XAMPP local OpenSSL)
 ```
 

@@ -13,13 +13,9 @@ require_once __DIR__ . '/../vendor/autoload.php';
 // require_once __DIR__ . '/../lib/PHPMailer/SMTP.php';
 // require_once __DIR__ . '/../lib/PHPMailer/Exception.php';
 
-// ── Thông tin SMTP ────────────────────────────────────────────────────────
-define('MAIL_HOST',     'smtp.gmail.com');
-define('MAIL_PORT',     587);
-define('MAIL_USERNAME', 'nguyengocvi94tn@gmail.com');
-define('MAIL_PASSWORD', '***REMOVED***');    // App Password — Easyhome
-define('MAIL_FROM',     'nguyengocvi94tn@gmail.com');
-define('MAIL_FROM_NAME','Easyhome Hotel');
+// ── Thông tin SMTP — load từ file riêng (gitignored) ─────────────────────
+// Xem config/mail-secret.example.php để biết cách tạo file này
+require_once __DIR__ . '/mail-secret.php';
 
 /**
  * Tạo PHPMailer instance đã cấu hình sẵn SMTP

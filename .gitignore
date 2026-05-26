@@ -1,3 +1,6 @@
 .DS_Store
 config.php
 *.log
+
+# SMTP credentials — KHÔNG commit lên Git
+config/mail-secret.php
