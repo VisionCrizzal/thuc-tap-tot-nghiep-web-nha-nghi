@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/mailer.php';
 
 if (!isset($_SESSION['kh_id'])) {
     header('Location: ../login.php'); exit;
@@ -130,6 +131,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dat_p
             foreach ($dvList as $d) {
                 $pdo->prepare("INSERT INTO DAT_DICH_VU (MaDP,MaDV,SoLuong,ThanhTien) VALUES (?,?,1,?)")
                     ->execute([$maDP, $d['MaDV'], $d['GiaDV']]);
+            }
+
+            // Gửi email xác nhận đặt phòng
+            if (!empty($kh['Email'])) {
+                sendBookingConfirmation(
+                    $kh['Email'],
+                    $khName,
+                    [
+                        'maDP'      => $maDP,
+                        'loaiPhong' => "Phòng {$loai} ({$room['MaPhong']})",
+                        'checkin'   => date('d/m/Y H:i', strtotime($checkin)),
+                        'checkout'  => date('d/m/Y H:i', strtotime($checkout)),
+                        'tongGia'   => $tongGia,
+                    ]
+                );
             }
 
             $msg = "Đặt phòng thành công! Mã đặt: <strong>{$maDP}</strong> — Phòng: <strong>{$room['MaPhong']}</strong> — Tiền cọc: <strong>" . number_format($tienCoc, 0, ',', '.') . "đ</strong>. Nhân viên sẽ liên hệ xác nhận sớm.";

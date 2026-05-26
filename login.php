@@ -346,6 +346,13 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
     <!-- BODY -->
     <div class="card-body">
 
+      <?php if (isset($_GET['reset'])): ?>
+      <div style="display:flex;align-items:center;gap:10px;background:#f0fdf4;
+        border:1.5px solid #bbf7d0;border-radius:9px;padding:11px 14px;margin-bottom:20px;font-size:.84rem;color:#16a34a">
+        ✅ <span>Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập lại.</span>
+      </div>
+      <?php endif; ?>
+
       <?php if ($isBookingContext && !$isLocked): ?>
       <div style="display:flex;align-items:center;gap:10px;background:var(--blue-pale);
         border:1.5px solid var(--blue-mid);border-radius:9px;padding:11px 14px;margin-bottom:20px;font-size:.84rem;color:var(--blue-dark)">
@@ -423,6 +430,9 @@ body::after{content:'';position:fixed;bottom:-80px;right:-80px;width:300px;heigh
       <?php endif; ?>
 
       <?php if (!$isLocked): ?>
+      <div class="register-line">
+        <a href="forgot-password.php" style="color:var(--muted);font-size:13px">🔑 Quên mật khẩu?</a>
+      </div>
       <div class="register-line">
         Chưa có tài khoản? <a href="register.php">Đăng ký ngay →</a>
       </div>

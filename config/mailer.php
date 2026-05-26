@@ -154,6 +154,76 @@ function emailBookingHTML(string $name, array $b): string {
     HTML;
 }
 
+/**
+ * Gửi email reset mật khẩu
+ */
+function sendPasswordReset(
+    string $toEmail,
+    string $toName,
+    string $resetLink
+): bool {
+    try {
+        $mail = createMailer();
+        $mail->addAddress($toEmail, $toName);
+        $mail->isHTML(true);
+        $mail->Subject = '🔑 Đặt lại mật khẩu — Easyhome';
+        $mail->Body    = emailResetHTML($toName, $resetLink);
+        $mail->AltBody = "Xin chào {$toName},\n\n"
+                       . "Bạn vừa yêu cầu đặt lại mật khẩu tại Easyhome.\n"
+                       . "Nhấn vào link sau để tạo mật khẩu mới (có hiệu lực 1 giờ):\n"
+                       . $resetLink . "\n\n"
+                       . "Nếu bạn không yêu cầu, hãy bỏ qua email này.\n"
+                       . "— Easyhome Hotel, TP. Huế — 0768.466.686";
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log('PHPMailer Error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function emailResetHTML(string $name, string $resetLink): string {
+    return <<<HTML
+    <!DOCTYPE html>
+    <html lang="vi"><head><meta charset="UTF-8"></head>
+    <body style="font-family:Calibri,Arial,sans-serif;background:#f0f6ff;margin:0;padding:20px">
+      <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:10px;
+                  box-shadow:0 4px 24px rgba(29,78,216,.10);overflow:hidden">
+        <div style="background:#1e3a8a;padding:28px 32px;text-align:center">
+          <h1 style="color:#fff;margin:0;font-size:24px">🏨 Easyhome Hotel</h1>
+          <p style="color:#bfdbfe;margin:6px 0 0">Nhà nghỉ theo giờ — TP. Huế</p>
+        </div>
+        <div style="padding:32px">
+          <h2 style="color:#1d4ed8;margin-top:0">🔑 Đặt lại mật khẩu</h2>
+          <p>Xin chào <strong>{$name}</strong>,</p>
+          <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn tại Easyhome.</p>
+          <p>Nhấn nút bên dưới để tạo mật khẩu mới. Link có hiệu lực trong <strong>1 giờ</strong>.</p>
+          <div style="text-align:center;margin:28px 0">
+            <a href="{$resetLink}"
+               style="background:#1d4ed8;color:#fff;text-decoration:none;padding:14px 32px;
+                      border-radius:8px;font-size:16px;font-weight:600;display:inline-block">
+              → Đặt Lại Mật Khẩu
+            </a>
+          </div>
+          <p style="color:#64748b;font-size:13px">
+            Hoặc copy link này vào trình duyệt:<br>
+            <a href="{$resetLink}" style="color:#3b82f6;word-break:break-all">{$resetLink}</a>
+          </p>
+          <hr style="border:none;border-top:1px solid #bfdbfe;margin:24px 0">
+          <p style="color:#94a3b8;font-size:13px;margin:0">
+            ⚠️ Nếu bạn không yêu cầu đặt lại mật khẩu, hãy bỏ qua email này.<br>
+            Tài khoản của bạn vẫn an toàn.
+          </p>
+        </div>
+        <div style="background:#eff6ff;padding:16px 32px;text-align:center;
+                    color:#64748b;font-size:13px;border-top:1px solid #bfdbfe">
+          📞 0768.466.686 — Email tự động từ hệ thống Easyhome — Vui lòng không reply
+        </div>
+      </div>
+    </body></html>
+    HTML;
+}
+
 function emailReminderHTML(string $name, array $b): string {
     return <<<HTML
     <!DOCTYPE html>
