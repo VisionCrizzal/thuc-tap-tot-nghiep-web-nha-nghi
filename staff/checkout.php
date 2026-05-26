@@ -139,6 +139,29 @@ $kmNameDisp  = $hd ? parseKMName($hd['GhiChu'] ?? '')  : '';
 $vatDisp     = $hd ? parseVAT($hd['GhiChu'] ?? '', (float)$hd['TongTien']) : 0;
 $diemCong    = ($done && $hd && $hd['TrangThai'] === 'Đã thanh toán')
                ? (int)floor($hd['TongTien'] / 1000) : 0;
+
+/* ── Nhận diện thanh toán online (PT_FULL / BALANCE_PT) ──────────────────── */
+function extractOnlinePTLabel(string $note): string {
+    foreach (['BALANCE_PT', 'PT_FULL'] as $key) {
+        if (preg_match('/\[' . $key . ':([^\]]+)\]/', $note, $m)) {
+            return match(strtolower(trim($m[1]))) {
+                'momo'         => 'MoMo',
+                'zalo'         => 'ZaloPay',
+                'bank'         => 'VietQR Banking',
+                'tien_mat'     => 'Tiền mặt',
+                'chuyen_khoan' => 'Chuyển khoản',
+                'qr'           => 'QR Code',
+                default        => trim($m[1]) ?: 'Online'
+            };
+        }
+    }
+    return 'Online';
+}
+$gcDP          = $bk['GhiChu'] ?? '';
+$hasPT_FULL    = str_contains($gcDP, '[PT_FULL:');
+$hasPT_BALANCE = str_contains($gcDP, '[BALANCE_PT:');
+$onlinePTLabel = extractOnlinePTLabel($gcDP);
+$isFullyPaid   = ($conLai <= 0);   // không còn khoản nào cần thu theo HOA_DON
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -266,6 +289,17 @@ body{background:var(--bg);min-height:100vh}
   border:none;border-radius:10px;cursor:pointer;transition:all .3s;
   box-shadow:0 4px 18px rgba(29,78,216,.38)}
 .btn-submit:hover{transform:translateY(-1px)}
+
+/* ── PAID ONLINE BANNER ── */
+.paid-banner{display:flex;align-items:flex-start;gap:14px;
+  background:#f0fdf4;border:1.5px solid #86efac;border-left:5px solid #22c55e;
+  border-radius:10px;padding:16px 20px}
+.paid-banner-icon{font-size:1.6rem;flex-shrink:0;line-height:1.4}
+.paid-banner-title{font-size:.9rem;font-weight:700;color:#166534;margin-bottom:5px}
+.paid-banner-sub{font-size:.79rem;color:#166534;line-height:1.7}
+.balance-warn{display:flex;align-items:flex-start;gap:10px;
+  background:#fefce8;border:1.5px solid #fde68a;border-left:5px solid #f59e0b;
+  border-radius:10px;padding:13px 16px;margin-bottom:14px;font-size:.82rem;color:#92400e;line-height:1.6}
 
 /* ═══════════════════════════════════════════════
    INVOICE (done state + print)
@@ -462,7 +496,8 @@ body{background:var(--bg);min-height:100vh}
   <form method="POST">
     <?= csrfField() ?>
     <input type="hidden" name="action" value="checkout">
-    <input type="hidden" name="phuong_thuc" id="hidPT" value="Tiền mặt">
+    <input type="hidden" name="phuong_thuc" id="hidPT"
+           value="<?= $isFullyPaid ? htmlspecialchars('Đã thanh toán — ' . $onlinePTLabel) : 'Tiền mặt' ?>">
 
     <!-- Phụ phí thêm -->
     <div class="card">
@@ -485,16 +520,24 @@ body{background:var(--bg);min-height:100vh}
         </div>
         <div style="margin-top:14px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));
                     border-radius:9px;padding:14px 18px;display:flex;justify-content:space-between;color:#fff">
-          <span style="font-size:.88rem;color:rgba(255,255,255,.85)">💰 Tổng còn lại phải thu:</span>
+          <span style="font-size:.88rem;color:rgba(255,255,255,.85)"><?= $isFullyPaid ? '➕ Phụ phí phát sinh (nếu có):' : '💰 Tổng còn lại phải thu:' ?></span>
           <span style="font-size:1.2rem;font-weight:700" id="displayConLai"><?= number_format($conLai,0,',','.') ?>đ</span>
         </div>
       </div>
     </div>
 
-    <!-- Phương thức thanh toán -->
+<?php if (!$isFullyPaid): ?>
+    <!-- Phương thức thanh toán (số tiền còn lại) -->
     <div class="card">
       <div class="card-head"><span class="ch-icon">💳</span><span class="ch-title">Phương Thức Thanh Toán</span></div>
       <div class="card-body">
+        <?php if ($hasPT_BALANCE): ?>
+        <div class="balance-warn">
+          ⚠️&nbsp;<div>Hệ thống ghi nhận khách đã thanh toán số dư qua online
+          (<strong><?= htmlspecialchars($onlinePTLabel) ?></strong>).
+          Vui lòng xác nhận lại trước khi thu tiền.</div>
+        </div>
+        <?php endif; ?>
         <div class="pay-grid">
           <div class="pay-card active" onclick="selectPM(this,'cash','Tiền mặt')">
             <div class="pay-icon">💵</div><div class="pay-lbl">Tiền Mặt</div>
@@ -609,9 +652,39 @@ body{background:var(--bg);min-height:100vh}
       </div>
     </div>
 
-    <button type="submit" class="btn-submit"
-            onclick="return confirm('Xác nhận thanh toán và check-out khách?')">
-      💳 Xác Nhận Thanh Toán & Check-out
+<?php else: /* $isFullyPaid — đã thanh toán đầy đủ */ ?>
+    <!-- Banner: Đã thanh toán online / đủ qua cọc -->
+    <div class="card" style="border-color:#86efac">
+      <div class="card-head" style="background:#f0fdf4;border-bottom-color:#86efac">
+        <span class="ch-icon">✅</span>
+        <span class="ch-title" style="color:#166534">Tình Trạng Thanh Toán</span>
+      </div>
+      <div class="card-body">
+        <div class="paid-banner">
+          <div class="paid-banner-icon">✅</div>
+          <div>
+            <div class="paid-banner-title">Đã thanh toán đầy đủ — không cần thu thêm tiền</div>
+            <div class="paid-banner-sub">
+              <?php if ($hasPT_FULL): ?>
+                Khách đã thanh toán toàn bộ hóa đơn khi đặt phòng qua
+                <strong><?= htmlspecialchars($onlinePTLabel) ?></strong>.<br>
+              <?php elseif ($hasPT_BALANCE): ?>
+                Khách đã thanh toán số dư còn lại qua online
+                (<strong><?= htmlspecialchars($onlinePTLabel) ?></strong>).<br>
+              <?php else: ?>
+                Tiền cọc đã thu đủ tổng hóa đơn — số dư còn lại: <strong>0đ</strong>.<br>
+              <?php endif; ?>
+              Nếu có phụ phí phát sinh, nhập ở ô bên trên rồi bấm nút bên dưới để hoàn tất.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+<?php endif; /* $isFullyPaid */ ?>
+
+    <button type="submit" class="btn-submit"<?= $isFullyPaid ? ' style="background:linear-gradient(135deg,#16a34a,#22c55e);box-shadow:0 4px 18px rgba(22,163,74,.35)"' : '' ?>
+            onclick="return confirm('<?= $isFullyPaid ? 'Xác nhận check-out? (Đã thanh toán đầy đủ)' : 'Xác nhận thanh toán và check-out khách?' ?>')">
+      <?= $isFullyPaid ? '✅ Xác Nhận Check-out (Đã thanh toán đầy đủ)' : '💳 Xác Nhận Thanh Toán & Check-out' ?>
     </button>
   </form>
 
@@ -730,13 +803,22 @@ body{background:var(--bg);min-height:100vh}
       </table>
 
       <div class="inv-remain">
+        <?php if ($isFullyPaid && $conLai == 0): ?>
+        <span class="inv-remain-lbl">✅ Đã Thanh Toán Đầy Đủ</span>
+        <span class="inv-remain-val" style="font-size:1rem;letter-spacing:0">(qua tiền cọc / online)</span>
+        <?php else: ?>
         <span class="inv-remain-lbl">💰 Đã Thanh Toán</span>
         <span class="inv-remain-val"><?= number_format($conLai,0,',','.') ?>đ</span>
+        <?php endif; ?>
       </div>
 
       <div class="inv-pay-method">
         <div class="inv-pay-lbl">Phương thức thanh toán</div>
-        <div class="inv-pay-val">💳 <?= htmlspecialchars($hd ? ($hd['PhuongThucTT'] ?? 'Tiền mặt') : 'Tiền mặt') ?></div>
+        <div class="inv-pay-val">💳 <?= htmlspecialchars($hd ? ($hd['PhuongThucTT'] ?? 'Tiền mặt') : 'Tiền mặt') ?>
+          <?php if ($isFullyPaid && ($hasPT_FULL || $hasPT_BALANCE)): ?>
+          <span style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:6px">(đã thanh toán online trước)</span>
+          <?php endif; ?>
+        </div>
       </div>
     </div>
 

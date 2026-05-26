@@ -1,6 +1,6 @@
 # CLAUDE.md — Easyhome Hotel Management System
 > **Project memory cho Claude AI** — Đọc file này trước khi làm bất kỳ việc gì trong project.
-> Cập nhật lần cuối: 26/05/2026 (v32: Hủy đặt phòng + Hoàn tiền theo chính sách)
+> Cập nhật lần cuối: 26/05/2026 (v33: checkout.php tích hợp nhận diện thanh toán online)
 
 ---
 
@@ -355,8 +355,10 @@ forgot-password.php (nhập email)
 [ ] Email nhắc check-in         — sendCheckinReminder() đã có trong mailer.php
                                   Cần cron job hoặc script chạy tay mỗi ngày để gọi hàm này
 
-[ ] checkout.php tích hợp hoàn tiền — Khi [BALANCE_PT:] tồn tại hoặc TienCoc=TongGia,
-                                       hiển thị "Đã thanh toán online" thay vì nhập lại
+[x] checkout.php tích hợp hoàn tiền — Khi [BALANCE_PT:]/[PT_FULL:] tồn tại hoặc conLai≤0,
+                                       ẩn form chọn PT thanh toán → hiện banner xanh "Đã TT đầy đủ";
+                                       nút submit đổi xanh lá "✅ Xác Nhận Check-out"; hóa đơn cập nhật
+                                       nhãn "Đã Thanh Toán Đầy Đủ (qua tiền cọc / online)" (DONE v33)
 ```
 
 ---
