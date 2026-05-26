@@ -61,7 +61,8 @@ if (!$hd && !$done) {
     $nights    = max(1, (int)ceil((strtotime($bk['NgayCheckOut']) - strtotime($bk['NgayCheckIn'])) / 86400));
     $tienPhong = $bk['GiaPhong'] * $nights;
     $tienDV    = array_sum(array_column($svcs, 'ThanhTien'));
-    $tongTien  = $tienPhong + $tienDV;
+    $vatAmt    = round(($tienPhong + $tienDV) * 0.01);   // VAT 1%
+    $tongTien  = $tienPhong + $tienDV + $vatAmt;
 
     $lastHD = $pdo->query("SELECT MaHD FROM HOA_DON ORDER BY NgayLap DESC LIMIT 1")->fetchColumn();
     $hdNum  = $lastHD ? (int)preg_replace('/\D/', '', $lastHD) + 1 : 1;
@@ -75,16 +76,23 @@ if (!$hd && !$done) {
     $hd = $fetchHD();
 }
 
-/* ── Helper: parse giảm giá từ GhiChu ───────────────────────────────────── */
+/* ── Helpers: parse GhiChu ───────────────────────────────────────────────── */
 function parseGiamGia(string $note): float {
     return preg_match('/\[GIAM:(\d+)\]/', $note, $m) ? (float)$m[1] : 0;
 }
 function parseKMName(string $note): string {
     return preg_match('/\[KM:[^\s]+ ([^\]]+)\]/', $note, $m) ? $m[1] : '';
 }
+function parseVAT(string $note, float $tongTien): float {
+    // Nếu có tag [VAT:x] → dùng giá trị đó
+    if (preg_match('/\[VAT:(\d+)\]/', $note, $m)) return (float)$m[1];
+    // Bản ghi cũ (chưa có tag) → tính gần đúng từ TongTien
+    return round($tongTien / 1.01 * 0.01);
+}
 
 $giamGiaDisp = $hd ? parseGiamGia($hd['GhiChu'] ?? '') : 0;
 $kmNameDisp  = $hd ? parseKMName($hd['GhiChu'] ?? '')  : '';
+$vatDisp     = $hd ? parseVAT($hd['GhiChu'] ?? '', (float)$hd['TongTien']) : 0;
 
 $nights  = max(1, (int)ceil((strtotime($bk['NgayCheckOut']) - strtotime($bk['NgayCheckIn'])) / 86400));
 $conLai  = $hd ? max(0, $hd['TongTien'] - $hd['TienCocDaThu']) : 0;
@@ -125,9 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
 
 /* Cập nhật lại $hd sau POST nếu cần (done=1) */
 if ($done) $hd = $fetchHD();
-$conLai = $hd ? max(0, $hd['TongTien'] - $hd['TienCocDaThu']) : 0;
+$conLai      = $hd ? max(0, $hd['TongTien'] - $hd['TienCocDaThu']) : 0;
 $giamGiaDisp = $hd ? parseGiamGia($hd['GhiChu'] ?? '') : 0;
 $kmNameDisp  = $hd ? parseKMName($hd['GhiChu'] ?? '')  : '';
+$vatDisp     = $hd ? parseVAT($hd['GhiChu'] ?? '', (float)$hd['TongTien']) : 0;
 $diemCong    = ($done && $hd && $hd['TrangThai'] === 'Đã thanh toán')
                ? (int)floor($hd['TongTien'] / 1000) : 0;
 ?>
@@ -431,8 +440,10 @@ body{background:var(--bg);min-height:100vh}
         <tr><td style="color:#16a34a">🎁 Giảm giá<?= $kmNameDisp ? " ({$kmNameDisp})" : '' ?></td>
             <td class="td-r" style="color:#16a34a">-<?= number_format($giamGiaDisp,0,',','.') ?>đ</td></tr>
         <?php endif; ?>
+        <tr><td style="color:var(--muted)">🧾 Thuế VAT (1%)</td>
+            <td class="td-r" style="color:var(--muted)"><?= number_format($vatDisp,0,',','.') ?>đ</td></tr>
         <tr class="row-total">
-          <td><strong>Tổng Tiền</strong></td>
+          <td><strong>Tổng Tiền</strong> <small style="font-weight:400;color:var(--muted)">(đã gồm VAT)</small></td>
           <td class="td-r"><strong><?= number_format($hd ? $hd['TongTien'] : 0,0,',','.') ?>đ</strong></td>
         </tr>
         <tr class="row-coc">
@@ -703,8 +714,12 @@ body{background:var(--bg);min-height:100vh}
             <td class="ar">-<?= number_format($giamGiaDisp,0,',','.') ?>đ</td>
           </tr>
           <?php endif; ?>
+          <tr style="color:#6b7280;font-size:.82rem">
+            <td>🧾 Thuế VAT (1%)</td>
+            <td class="ar"><?= number_format($vatDisp,0,',','.') ?>đ</td>
+          </tr>
           <tr class="itr-total">
-            <td><strong>Tổng Cộng</strong></td>
+            <td><strong>Tổng Cộng</strong> <small style="font-weight:400;font-size:.75rem">(đã gồm VAT)</small></td>
             <td class="ar"><strong><?= number_format($hd ? $hd['TongTien'] : 0,0,',','.') ?>đ</strong></td>
           </tr>
           <tr class="itr-coc">

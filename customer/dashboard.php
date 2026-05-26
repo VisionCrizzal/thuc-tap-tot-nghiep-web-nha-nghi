@@ -115,44 +115,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dat_p
                     $kmNote = " [GIAM:{$giamGia}][KM:{$kmRec['MaKM']} {$kmRec['TenKM']}]";
                 }
             }
-            $tongGia = max(0, $tienPhong + $tienDV - $giamGia);
-            $tienCoc = round($tongGia * 0.3);
+            $subtotal = max(0, $tienPhong + $tienDV - $giamGia);
+            $vatAmt   = round($subtotal * 0.01);          // VAT 1%
+            $tongGia  = $subtotal + $vatAmt;
+            $kmNote  .= " [VAT:{$vatAmt}]";
+            $tienCoc  = round($tongGia * 0.3);
 
-            // Sinh MaDP
-            $lastDP = $pdo->query("SELECT MaDP FROM DAT_PHONG ORDER BY NgayDat DESC LIMIT 1")->fetchColumn();
-            $dpNum  = $lastDP ? intval(preg_replace('/\D/', '', $lastDP)) + 1 : 1;
-            $maDP   = 'DP' . str_pad($dpNum, 3, '0', STR_PAD_LEFT);
-
-            // Insert DAT_PHONG
-            $pdo->prepare("INSERT INTO DAT_PHONG (MaDP,MaKH,MaPhong,NgayCheckIn,NgayCheckOut,SoLuongKhach,TienCoc,TongGia,GhiChu) VALUES (:dp,:kh,:ph,:in,:out,:sk,:coc,:tong,:ghi)")
-                ->execute([':dp'=>$maDP,':kh'=>$khId,':ph'=>$room['MaPhong'],':in'=>$checkin,':out'=>$checkout,':sk'=>$soKhach,':coc'=>$tienCoc,':tong'=>$tongGia,':ghi'=>$ghiChu.$kmNote]);
-
-            // Insert DAT_DICH_VU
-            foreach ($dvList as $d) {
-                $pdo->prepare("INSERT INTO DAT_DICH_VU (MaDP,MaDV,SoLuong,ThanhTien) VALUES (?,?,1,?)")
-                    ->execute([$maDP, $d['MaDV'], $d['GiaDV']]);
-            }
-
-            // Gửi email xác nhận đặt phòng
-            if (!empty($kh['Email'])) {
-                sendBookingConfirmation(
-                    $kh['Email'],
-                    $khName,
-                    [
-                        'maDP'      => $maDP,
-                        'loaiPhong' => "Phòng {$loai} ({$room['MaPhong']})",
-                        'checkin'   => date('d/m/Y H:i', strtotime($checkin)),
-                        'checkout'  => date('d/m/Y H:i', strtotime($checkout)),
-                        'tongGia'   => $tongGia,
-                    ]
-                );
-            }
-
-            $msg = "Đặt phòng thành công! Mã đặt: <strong>{$maDP}</strong> — Phòng: <strong>{$room['MaPhong']}</strong> — Tiền cọc: <strong>" . number_format($tienCoc, 0, ',', '.') . "đ</strong>. Nhân viên sẽ liên hệ xác nhận sớm.";
-            $msgType = 'success';
-            $tab = 'history';
+            // Lưu tạm vào session → chuyển sang trang chọn hình thức cọc
+            $_SESSION['pending_booking'] = [
+                'maPhong'   => $room['MaPhong'],
+                'giaPhong'  => $room['GiaPhong'],
+                'loai'      => $loai,
+                'checkin'   => $checkin,
+                'checkout'  => $checkout,
+                'soKhach'   => $soKhach,
+                'tienPhong' => $tienPhong,
+                'tienDV'    => $tienDV,
+                'dvList'    => $dvList,
+                'giamGia'   => $giamGia,
+                'maKM'      => $maKM,
+                'kmNote'    => $kmNote,
+                'subtotal'  => $subtotal,
+                'vatAmt'    => $vatAmt,
+                'tongGia'   => $tongGia,
+                'tienCoc'   => $tienCoc,
+                'ghiChu'    => $ghiChu,
+                'days'      => $days,
+            ];
+            header('Location: payment.php');
+            exit;
         }
     }
+}
+
+// ── Helper: xóa tag nội bộ khỏi ghi chú hiển thị ────────────────────────────
+function cleanNote(string $note): string {
+    return trim(preg_replace('/\s*\[[A-Z_]+:[^\]]*\]/', '', $note));
+}
+
+// ── Thông báo sau khi thanh toán phần còn lại (từ pay-balance.php) ───────────
+if (isset($_SESSION['balance_success'])) {
+    $bs2 = $_SESSION['balance_success'];
+    $msg = "✅ Đã ghi nhận thanh toán phần còn lại <strong>{$bs2['soTien']}</strong> cho đơn <strong>{$bs2['maDP']}</strong> — Hình thức: <strong>{$bs2['ptNote']}</strong>. Nhân viên sẽ xác nhận sớm.";
+    $msgType = 'success';
+    $tab = 'history';
+    unset($_SESSION['balance_success']);
+}
+
+// ── Thông báo sau khi hoàn tất thanh toán (từ payment.php) ─────────────────
+if (isset($_SESSION['booking_success'])) {
+    $bs = $_SESSION['booking_success'];
+    $msg = "Đặt phòng thành công! Mã đặt: <strong>{$bs['maDP']}</strong> — Phòng: <strong>{$bs['maPhong']}</strong> — Tiền cọc: <strong>" . number_format($bs['tienCoc'], 0, ',', '.') . "đ</strong>. {$bs['ptNote']}";
+    $msgType = 'success';
+    $tab = 'history';
+    unset($_SESSION['booking_success']);
 }
 
 // ── Xử lý POST: Hủy đặt phòng ──────────────────────────────────────────────
@@ -368,6 +384,14 @@ body{background:var(--bg)}
   padding:6px 16px;border-radius:7px;font-family:var(--font);font-size:.76rem;
   font-weight:700;cursor:pointer;transition:all .2s}
 .btn-cancel:hover{background:#fecaca}
+.btn-pay-balance{
+  display:inline-flex;align-items:center;gap:5px;
+  background:linear-gradient(135deg,#b45309,#f59e0b);
+  color:#fff;border:none;border-radius:7px;padding:7px 13px;
+  font-size:.78rem;font-weight:700;text-decoration:none;cursor:pointer;
+  transition:.2s;font-family:var(--font)
+}
+.btn-pay-balance:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,158,11,.4)}
 .btn-detail{background:var(--blue-pale);border:1.5px solid var(--border);color:var(--blue-dark);
   padding:6px 16px;border-radius:7px;font-size:.76rem;font-weight:700;
   text-decoration:none;display:inline-block;transition:all .2s}
@@ -449,7 +473,7 @@ body{background:var(--bg)}
       <div class="profile-avatar">👤</div>
       <div>
         <div class="profile-name"><?= htmlspecialchars($kh['HoTen']) ?></div>
-        <div class="profile-id">Mã KH: <?= $kh['MaKH'] ?> &nbsp;·&nbsp; @<?= htmlspecialchars($kh['TenTaiKhoan']) ?></div>
+        <div class="profile-id">@<?= htmlspecialchars($kh['TenTaiKhoan']) ?></div>
         <div class="profile-points">⭐ <?= number_format($kh['TichDiem']) ?> điểm tích lũy</div>
       </div>
     </div>
@@ -680,8 +704,12 @@ body{background:var(--bg)}
               <span class="price-label">🎁 Giảm giá <span id="priceDiscName" style="font-size:.75rem;opacity:.85"></span></span>
               <span class="price-val" id="priceDiscount">0đ</span>
             </div>
+            <div class="price-row" id="priceVATRow">
+              <span class="price-label" style="opacity:.8">🧾 Thuế VAT (1%)</span>
+              <span class="price-val" id="priceVAT">0đ</span>
+            </div>
             <div class="price-row">
-              <span class="price-label">Tổng cộng</span>
+              <span class="price-label">Tổng cộng <span style="font-size:.7rem;opacity:.7;font-weight:400">(đã gồm VAT)</span></span>
               <span class="price-val" id="priceTotal">—</span>
             </div>
             <div class="price-row">
@@ -737,7 +765,12 @@ body{background:var(--bg)}
         <div>
           <div class="bk-item-label">Số Khách / Cọc</div>
           <div class="bk-item-val"><?= $bk['SoLuongKhach'] ?> người</div>
-          <div style="font-size:.77rem;color:var(--muted);">Cọc: <?= number_format($bk['TienCoc'],0,',','.') ?>đ</div>
+          <div style="font-size:.77rem;color:var(--muted);">
+            Đã trả: <?= number_format($bk['TienCoc'],0,',','.') ?>đ
+            <?php if ($bk['TienCoc'] >= $bk['TongGia']): ?>
+              <span style="color:var(--green);font-weight:700">✓ Full</span>
+            <?php endif ?>
+          </div>
         </div>
       </div>
       <?php if ($bk['DichVu']): ?>
@@ -745,14 +778,32 @@ body{background:var(--bg)}
         ✨ Dịch vụ: <?= htmlspecialchars($bk['DichVu']) ?>
       </div>
       <?php endif; ?>
-      <?php if ($bk['GhiChu']): ?>
+      <?php $noteClean = cleanNote($bk['GhiChu'] ?? ''); ?>
+      <?php if ($noteClean): ?>
       <div style="padding:0 18px 12px;font-size:.78rem;color:var(--muted);">
-        📝 <?= htmlspecialchars($bk['GhiChu']) ?>
+        📝 <?= htmlspecialchars($noteClean) ?>
       </div>
       <?php endif; ?>
       <div class="booking-footer">
-        <div class="bk-total">Tổng: <?= number_format($bk['TongGia'],0,',','.') ?>đ</div>
+        <div>
+          <div class="bk-total">Tổng: <?= number_format($bk['TongGia'],0,',','.') ?>đ</div>
+          <?php $remaining = $bk['TongGia'] - $bk['TienCoc']; ?>
+          <?php if ($remaining > 0 && in_array($bk['TrangThai'], ['Chờ xác nhận','Đã nhận phòng'])): ?>
+          <div style="font-size:.73rem;color:#f59e0b;font-weight:600;margin-top:3px">
+            💳 Còn lại: <?= number_format($remaining,0,',','.') ?>đ
+          </div>
+          <?php else: ?>
+          <div style="font-size:.73rem;color:var(--green);font-weight:600;margin-top:3px">
+            ✅ Đã thanh toán đủ
+          </div>
+          <?php endif; ?>
+        </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <?php if ($remaining > 0 && in_array($bk['TrangThai'], ['Chờ xác nhận','Đã nhận phòng'])): ?>
+          <a href="pay-balance.php?dp=<?= urlencode($bk['MaDP']) ?>" class="btn-pay-balance">
+            💳 Trả phần còn lại
+          </a>
+          <?php endif; ?>
           <a href="booking-detail.php?dp=<?= urlencode($bk['MaDP']) ?>" class="btn-detail">🔍 Chi tiết</a>
           <?php if ($bk['TrangThai'] === 'Chờ xác nhận'): ?>
           <form method="POST" onsubmit="return confirm('Xác nhận hủy đặt phòng này?')" style="margin:0">
@@ -954,8 +1005,12 @@ function updatePrice() {
     }
   }
 
-  const totalMin = Math.max(0, baseMin - discountAmtKh);
-  const totalMax = Math.max(0, baseMax - discountAmtKh);
+  const subMin = Math.max(0, baseMin - discountAmtKh);
+  const subMax = Math.max(0, baseMax - discountAmtKh);
+  const vatMin  = Math.round(subMin * 0.01);   // VAT 1%
+  const vatMax  = Math.round(subMax * 0.01);
+  const totalMin = subMin + vatMin;
+  const totalMax = subMax + vatMax;
   const fmt = n => n.toLocaleString('vi-VN') + 'đ';
   const fmtRange = (mn, mx) => mn === mx ? fmt(mn) : fmt(mn) + ' – ' + fmt(mx);
 
@@ -970,8 +1025,9 @@ function updatePrice() {
     } else discRow.style.display = 'none';
   }
 
-  document.getElementById('priceRoom').textContent = fmtRange(roomMin, roomMax);
-  document.getElementById('priceSvc').textContent  = fmt(svcTotal);
+  document.getElementById('priceRoom').textContent  = fmtRange(roomMin, roomMax);
+  document.getElementById('priceSvc').textContent   = fmt(svcTotal);
+  document.getElementById('priceVAT').textContent   = fmtRange(vatMin, vatMax);
   document.getElementById('priceTotal').textContent = fmtRange(totalMin, totalMax);
   document.getElementById('priceCoc').textContent   = fmtRange(Math.round(totalMin*.3), Math.round(totalMax*.3));
 }

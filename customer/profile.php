@@ -382,7 +382,7 @@ body{background:var(--bg)}
     </div>
     <div>
       <div class="hero-name"><?= esc($kh['HoTen']) ?></div>
-      <div class="hero-sub">@<?= esc($kh['TenTaiKhoan']) ?> &nbsp;·&nbsp; Mã KH: <?= esc($kh['MaKH']) ?></div>
+      <div class="hero-sub">@<?= esc($kh['TenTaiKhoan']) ?></div>
       <div class="hero-points">⭐ <?= number_format((float)$kh['TichDiem']) ?> điểm tích lũy</div>
     </div>
   </div>
@@ -402,20 +402,15 @@ body{background:var(--bg)}
     <div class="card-head">
       <span class="card-head-icon">📋</span>
       <span class="card-head-title">Thông Tin Cá Nhân</span>
-      <span class="card-head-sub">Không thể thay đổi: Tên đăng nhập, Mã KH</span>
+      <span class="card-head-sub">Không thể thay đổi: Tên đăng nhập</span>
     </div>
     <div class="card-body">
 
-      <!-- Readonly: TenTaiKhoan + MaKH -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <!-- Readonly: TenTaiKhoan -->
+      <div style="margin-bottom:20px">
         <div class="info-readonly">
           <span class="label">Tên đăng nhập</span>
           <span class="val">@<?= esc($kh['TenTaiKhoan']) ?></span>
-          <span class="lock-icon">🔒</span>
-        </div>
-        <div class="info-readonly">
-          <span class="label">Mã KH</span>
-          <span class="val"><?= esc($kh['MaKH']) ?></span>
           <span class="lock-icon">🔒</span>
         </div>
       </div>

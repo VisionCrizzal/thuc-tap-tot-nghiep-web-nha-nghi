@@ -87,7 +87,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
         }
     }
 
-    $tongTien = max(0, $tienPhong + $totalDV + $phuPhi - $giamGia);
+    $subtotal = max(0, $tienPhong + $totalDV + $phuPhi - $giamGia);
+    $vatAmt   = round($subtotal * 0.01);          // VAT 1%
+    $tongTien = $subtotal + $vatAmt;
+    $kmNote  .= " [VAT:{$vatAmt}]";
 
     /* Tạo mã hóa đơn */
     $lastHD = $pdo->query("SELECT MaHD FROM HOA_DON ORDER BY NgayLap DESC LIMIT 1")->fetchColumn();
@@ -456,9 +459,13 @@ body{background:var(--bg);min-height:100vh}
             <span class="pl">🎁 Giảm giá <span id="discLbl" style="font-size:.75rem"></span></span>
             <span class="pv" id="discAmt">0đ</span>
           </div>
+          <div class="pr" id="rowVAT">
+            <span class="pl">🧾 Thuế VAT (1%)</span>
+            <span class="pv" id="vatAmt"><?= number_format(round(($tienPhong+$tienDV)*0.01),0,',','.') ?>đ</span>
+          </div>
           <div class="pr total">
-            <span class="pl">Tổng Tiền</span>
-            <span class="pv" id="totalAmt"><?= number_format($tienPhong+$tienDV,0,',','.') ?>đ</span>
+            <span class="pl">Tổng Tiền <span style="font-size:.7rem;opacity:.7;font-weight:400">(đã gồm VAT)</span></span>
+            <span class="pv" id="totalAmt"><?= number_format(round(($tienPhong+$tienDV)*1.01),0,',','.') ?>đ</span>
           </div>
           <div class="coc-wrap">
             <span class="coc-lbl">⚡ Tiền cọc thu:</span>
@@ -658,8 +665,10 @@ function updateCalc() {
       : Math.min(km.GiaTriKM, base);
   } else giamGia = 0;
 
-  const total  = Math.max(0, base + phuPhi - giamGia);
-  const defCoc = Math.round(total * 0.3);
+  const subtotal = Math.max(0, base + phuPhi - giamGia);
+  const vat      = Math.round(subtotal * 0.01);   // VAT 1%
+  const total    = subtotal + vat;
+  const defCoc   = Math.round(total * 0.3);
 
   /* Show/hide rows */
   toggleRow('rowExtra',   extraSvc > 0, 'extraAmt', fmt(extraSvc));
@@ -671,6 +680,7 @@ function updateCalc() {
       document.getElementById('discLbl').textContent = '('+promoData[currentKM].TenKM+')';
   } else document.getElementById('rowDiscount').style.display='none';
 
+  document.getElementById('vatAmt').textContent   = fmt(vat);
   document.getElementById('totalAmt').textContent = fmt(total);
 
   const inp = document.getElementById('tienCocInp');

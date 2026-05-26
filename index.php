@@ -574,15 +574,18 @@ section{padding:76px 5%}
 .svc-desc{font-size:0.75rem;color:var(--muted);line-height:1.5;margin-bottom:11px}
 .svc-price{font-size:0.87rem;font-weight:700;color:var(--blue)}
 
-/* POLICY */
-.policy-bar{background:var(--blue-dark);padding:52px 5%;
-  display:grid;grid-template-columns:repeat(3,1fr)}
-.policy-col{padding:0 36px;border-right:1px solid rgba(255,255,255,.12)}
-.policy-col:last-child{border-right:none}
+/* POLICY (white strip above footer) */
+.policy-bar{background:#fff;padding:44px 5%;
+  border-top:1px solid var(--border);border-bottom:3px solid var(--blue)}
+.policy-inner{display:grid;grid-template-columns:repeat(3,1fr);
+  max-width:1100px;margin:0 auto}
+.policy-col{padding:0 36px;border-right:1px solid var(--border)}
+.policy-col:first-child{padding-left:0}
+.policy-col:last-child{border-right:none;padding-right:0}
 .policy-icon{font-size:1.7rem;margin-bottom:13px}
-.policy-title{font-family:var(--serif);font-size:1.1rem;color:#fff;margin-bottom:10px}
-.policy-text{font-size:0.81rem;color:rgba(255,255,255,.5);line-height:1.85;font-weight:300}
-.policy-text span{color:#93c5fd;font-weight:500}
+.policy-title{font-family:var(--serif);font-size:1.1rem;color:var(--blue-dark);margin-bottom:10px}
+.policy-text{font-size:0.81rem;color:var(--muted);line-height:1.85;font-weight:400}
+.policy-text span{color:var(--blue);font-weight:600}
 
 /* GALLERY */
 .gallery-section{background:#fff;padding:72px 5%}
@@ -618,7 +621,7 @@ section{padding:76px 5%}
 .map-frame iframe{width:100%;height:380px;border:none;display:block}
 
 /* FOOTER */
-footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
+footer{background:var(--blue-dark);padding:56px 5% 24px;color:#fff}
 .footer-inner{display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:40px;
   max-width:1100px;margin:0 auto 32px;padding-bottom:32px;
   border-bottom:1px solid rgba(255,255,255,.12)}
@@ -638,8 +641,9 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
 @media(max-width:900px){
   .nav-links{display:none}
   .search-form{grid-template-columns:1fr 1fr}
-  .policy-bar{grid-template-columns:1fr;gap:0}
-  .policy-col{border-right:none;border-bottom:1px solid rgba(255,255,255,.12);padding:28px 0}
+  .policy-bar{padding:28px 5%}
+  .policy-inner{grid-template-columns:1fr;gap:0}
+  .policy-col{border-right:none;border-bottom:1px solid var(--border);padding:22px 0}
   .policy-col:last-child{border-bottom:none}
   .gallery-grid{grid-template-columns:1fr 1fr}
   .map-wrap{grid-template-columns:1fr}
@@ -940,40 +944,6 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
   </div>
 </section>
 
-<!-- POLICY -->
-<div class="policy-bar">
-  <div class="policy-col">
-    <div class="policy-icon">⏰</div>
-    <div class="policy-title">Giờ Hoạt Động</div>
-    <div class="policy-text">
-      <span>Nhận phòng:</span> Từ 14:00<br>
-      <span>Trả phòng:</span> Trước 12:00<br>
-      Theo giờ: <span>99K / 2 giờ</span><br>
-      Ở thêm: phụ thu 20% giá phòng
-    </div>
-  </div>
-  <div class="policy-col">
-    <div class="policy-icon">💳</div>
-    <div class="policy-title">Chính Sách Đặt Cọc</div>
-    <div class="policy-text">
-      Cọc <span>30%</span> tổng giá trị phòng<br>
-      Hủy trước 3 ngày: hoàn <span>100%</span><br>
-      Hủy trong 24h: hoàn <span>50%</span><br>
-      Hủy trong 2–3h: <span>không hoàn</span>
-    </div>
-  </div>
-  <div class="policy-col">
-    <div class="policy-icon">📞</div>
-    <div class="policy-title">Liên Hệ</div>
-    <div class="policy-text">
-      <span>Hotline / Zalo:</span> 0768.466.686<br>
-      <span>Check-in:</span> Tự động 24/7<br>
-      Phòng riêng tư — không gặp ai<br>
-      Wifi mạnh · Máy chiếu · Đèn tâm trạng
-    </div>
-  </div>
-</div>
-
 <!-- GALLERY -->
 <section class="gallery-section" id="gallery">
   <div class="sec-head">
@@ -1025,6 +995,42 @@ footer{background:var(--blue-dark);padding:48px 5% 24px;color:#fff}
     </div>
   </div>
 </section>
+
+<!-- POLICY BAR (nền trắng, tách biệt với footer xanh) -->
+<div class="policy-bar">
+  <div class="policy-inner">
+    <div class="policy-col">
+      <div class="policy-icon">⏰</div>
+      <div class="policy-title">Giờ Hoạt Động</div>
+      <div class="policy-text">
+        <span>Nhận phòng:</span> Từ 14:00<br>
+        <span>Trả phòng:</span> Trước 12:00<br>
+        Theo giờ: <span>99K / 2 giờ</span><br>
+        Ở thêm: phụ thu 20% giá phòng
+      </div>
+    </div>
+    <div class="policy-col">
+      <div class="policy-icon">💳</div>
+      <div class="policy-title">Chính Sách Đặt Cọc</div>
+      <div class="policy-text">
+        Cọc <span>30%</span> tổng giá trị phòng<br>
+        Hủy trước 3 ngày: hoàn <span>100%</span><br>
+        Hủy trong 24h: hoàn <span>50%</span><br>
+        Hủy trong 2–3h: <span>không hoàn</span>
+      </div>
+    </div>
+    <div class="policy-col">
+      <div class="policy-icon">📞</div>
+      <div class="policy-title">Liên Hệ</div>
+      <div class="policy-text">
+        <span>Hotline / Zalo:</span> 0768.466.686<br>
+        <span>Check-in:</span> Tự động 24/7<br>
+        Phòng riêng tư — không gặp ai<br>
+        Wifi mạnh · Máy chiếu · Đèn tâm trạng
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- FOOTER -->
 <footer>
