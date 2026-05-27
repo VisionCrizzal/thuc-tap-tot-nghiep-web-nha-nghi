@@ -127,14 +127,14 @@ $topRooms = $topRooms->fetchAll();
 
 // 7. Top 5 dịch vụ (by revenue)
 $topSvcs = $pdo->prepare("
-    SELECT dv.TenDV, dv.BieuTuong,
+    SELECT dv.TenDV,
            SUM(ddv.SoLuong)    AS tong_sl,
            COALESCE(SUM(ddv.ThanhTien),0) AS doanh_thu
     FROM DICH_VU dv
     JOIN DAT_DICH_VU ddv ON dv.MaDV = ddv.MaDV
     JOIN DAT_PHONG dp    ON ddv.MaDP = dp.MaDP
     WHERE YEAR(dp.NgayCheckIn) = :y AND dp.TrangThai != 'Đã hủy'
-    GROUP BY dv.MaDV, dv.TenDV, dv.BieuTuong
+    GROUP BY dv.MaDV, dv.TenDV
     ORDER BY doanh_thu DESC
     LIMIT 5
 ");
@@ -596,7 +596,7 @@ body{display:flex;background:var(--bg);overflow-x:hidden}
             <?php $rankClass = match($i) { 0=>'gold', 1=>'silver', 2=>'bronze', default=>'' }; ?>
             <tr>
               <td><span class="rank-badge <?= $rankClass ?>"><?= $i+1 ?></span></td>
-              <td><?= esc($s['BieuTuong'] ?? '') ?> <?= esc($s['TenDV']) ?></td>
+              <td>🛎️ <?= esc($s['TenDV']) ?></td>
               <td class="td-r"><?= (int)$s['tong_sl'] ?></td>
               <td class="td-r"><?= fmt($s['doanh_thu']) ?></td>
             </tr>

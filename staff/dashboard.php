@@ -14,6 +14,8 @@ $msg       = ''; $msgType = 'success';
 
 // Thông báo từ checkin.php / checkout.php redirect
 if (isset($_GET['checkin_ok'])) { $msg = "✅ Check-in thành công! Hóa đơn đã được tạo."; }
+if (isset($_GET['service_ok'])) { $msg = "✅ " . htmlspecialchars($_GET['service_ok']); $tab = 'services'; }
+if (isset($_GET['service_err'])) { $msg = "⚠️ " . htmlspecialchars($_GET['service_err']); $msgType = 'error'; $tab = 'services'; }
 
 
 // ── Thông tin nhân viên ─────────────────────────────────────────────────────
@@ -89,6 +91,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE PHONG SET TinhTrang='Trống' WHERE MaPhong=:p")
                 ->execute([':p' => $maDP]); // reuse field for MaPhong here
             $msg = "Phòng <strong>{$maDP}</strong> đã dọn xong, chuyển về 'Trống'.";
+
+        } elseif ($action === 'add_service') {
+            // ── Thêm dịch vụ phát sinh vào phòng đang ở ──────────────────────
+            $maDV    = trim($_POST['ma_dv'] ?? '');
+            $soLuong = max(1, min(99, (int)($_POST['so_luong'] ?? 1)));
+            $check = $pdo->prepare("SELECT MaDP FROM DAT_PHONG WHERE MaDP=:dp AND TrangThai='Đã nhận phòng'");
+            $check->execute([':dp' => $maDP]);
+            if ($check->fetch() && $maDV !== '') {
+                $dvQ = $pdo->prepare("SELECT * FROM DICH_VU WHERE MaDV=:dv AND TrangThai='Khả dụng'");
+                $dvQ->execute([':dv' => $maDV]);
+                $dv = $dvQ->fetch();
+                if ($dv) {
+                    $thanhTien = $dv['GiaDV'] * $soLuong;
+                    $pdo->prepare("INSERT INTO DAT_DICH_VU (MaDP, MaDV, SoLuong, ThanhTien) VALUES (?,?,?,?)")
+                        ->execute([$maDP, $maDV, $soLuong, $thanhTien]);
+                    header('Location: dashboard.php?tab=services&service_ok=' .
+                        urlencode("Đã thêm \"{$dv['TenDV']}\" × {$soLuong} vào đặt phòng {$maDP}."));
+                    exit;
+                }
+            }
+            header('Location: dashboard.php?tab=services&service_err=' .
+                urlencode('Không tìm thấy dịch vụ hoặc phòng không hợp lệ.'));
+            exit;
+
+        } elseif ($action === 'del_service') {
+            // ── Xóa dịch vụ phát sinh ─────────────────────────────────────────
+            $maDDV = (int)($_POST['ma_ddv'] ?? 0);
+            if ($maDDV > 0) {
+                $check = $pdo->prepare("
+                    SELECT ddv.MaDDV FROM DAT_DICH_VU ddv
+                    JOIN DAT_PHONG dp ON ddv.MaDP = dp.MaDP
+                    WHERE ddv.MaDDV = :id AND dp.TrangThai = 'Đã nhận phòng'
+                ");
+                $check->execute([':id' => $maDDV]);
+                if ($check->fetch()) {
+                    $pdo->prepare("DELETE FROM DAT_DICH_VU WHERE MaDDV=:id")->execute([':id' => $maDDV]);
+                    header('Location: dashboard.php?tab=services&service_ok=' .
+                        urlencode('Đã xóa dịch vụ khỏi đặt phòng.'));
+                    exit;
+                }
+            }
+            header('Location: dashboard.php?tab=services&service_err=' .
+                urlencode('Không thể xóa dịch vụ này.'));
+            exit;
         }
     }
 }
@@ -167,6 +213,38 @@ $bkUrl = fn(array $ov = []) => '?' . http_build_query(array_merge(
     ['tab' => 'bookings', 'status' => $filterStatus, 'search' => $search],
     $ov
 ));
+
+// ── Dịch vụ phát sinh — phòng đang có khách ──────────────────────────────────
+$activeQ = $pdo->query("
+    SELECT dp.MaDP, dp.MaPhong, dp.NgayCheckIn, dp.NgayCheckOut, dp.TienCoc, dp.TongGia,
+           kh.HoTen AS TenKH, kh.SoDienThoai AS SdtKH,
+           p.LoaiPhong, p.Tang, p.GiaPhong
+    FROM DAT_PHONG dp
+    JOIN KHACH_HANG kh ON dp.MaKH = kh.MaKH
+    JOIN PHONG p ON dp.MaPhong = p.MaPhong
+    WHERE dp.TrangThai = 'Đã nhận phòng'
+    ORDER BY dp.NgayCheckIn
+");
+$activeBookings = $activeQ->fetchAll();
+
+$activeDVMap = [];
+if ($activeBookings) {
+    $activeMaDP = array_column($activeBookings, 'MaDP');
+    $ph = implode(',', array_fill(0, count($activeMaDP), '?'));
+    $dvListQ = $pdo->prepare("
+        SELECT ddv.MaDDV, ddv.MaDP, ddv.MaDV, ddv.SoLuong, ddv.ThanhTien, dv.TenDV
+        FROM DAT_DICH_VU ddv
+        JOIN DICH_VU dv ON ddv.MaDV = dv.MaDV
+        WHERE ddv.MaDP IN ($ph)
+        ORDER BY ddv.NgayDat
+    ");
+    $dvListQ->execute($activeMaDP);
+    foreach ($dvListQ->fetchAll() as $row) {
+        $activeDVMap[$row['MaDP']][] = $row;
+    }
+}
+
+$allSvcsAvail = getAllServices($pdo);  // dùng cho dropdown thêm DV
 
 // ── Danh sách phòng ──────────────────────────────────────────────────────────
 $rooms = getAllRooms($pdo);
@@ -341,10 +419,58 @@ body{background:var(--bg);min-height:100vh}
 .btn-clean{background:none;border:1.5px solid;border-radius:6px;padding:3px 10px;
   font-size:.68rem;font-weight:700;cursor:pointer;margin-top:6px;transition:all .2s}
 
+/* ── DỊCH VỤ PHÁT SINH ── */
+.svc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:18px}
+.svc-room-card{background:#fff;border-radius:var(--radius);border:1.5px solid var(--border);
+  box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s}
+.svc-room-card:hover{box-shadow:var(--shadow-lg)}
+.svc-room-head{padding:13px 16px;background:linear-gradient(135deg,var(--blue-dark),var(--blue));
+  display:flex;align-items:center;gap:10px;color:#fff}
+.svc-room-num{font-size:1.05rem;font-weight:700;font-family:var(--serif)}
+.svc-room-info{flex:1;min-width:0}
+.svc-room-guest{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.svc-room-sub{font-size:.69rem;color:rgba(255,255,255,.7);margin-top:1px}
+.svc-room-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  color:#fff;font-size:.65rem;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
+.svc-room-body{padding:14px 16px}
+.svc-list-title{font-size:.66rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px}
+.svc-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;min-height:28px}
+.svc-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--blue-pale);
+  border-radius:7px;border:1px solid var(--border)}
+.svc-item-name{flex:1;font-size:.8rem;font-weight:600;color:var(--text)}
+.svc-item-qty{font-size:.73rem;color:var(--muted);white-space:nowrap}
+.svc-item-price{font-size:.8rem;font-weight:700;color:var(--blue-dark);white-space:nowrap;margin-left:4px}
+.btn-del-svc{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;
+  padding:3px 8px;border-radius:5px;font-size:.68rem;font-weight:700;cursor:pointer;
+  flex-shrink:0;transition:.2s;line-height:1}
+.btn-del-svc:hover{background:#fecaca}
+.svc-empty{font-size:.77rem;color:var(--muted);font-style:italic;padding:4px 2px}
+.svc-total{display:flex;justify-content:space-between;align-items:center;
+  background:var(--blue-mid);border-radius:7px;padding:8px 10px;margin-bottom:13px;
+  font-size:.8rem;font-weight:700;color:var(--blue-dark)}
+.svc-add-form{display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+  background:#f8faff;border:1.5px dashed var(--border);border-radius:8px;padding:10px 12px}
+.svc-add-select{flex:1;min-width:130px;padding:7px 10px;border:1.5px solid var(--border);
+  border-radius:7px;font-size:.8rem;font-family:var(--font);color:var(--text);
+  background:#fff;outline:none;cursor:pointer;transition:.2s}
+.svc-add-select:focus{border-color:var(--blue)}
+.svc-add-qty{width:60px;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;
+  font-size:.8rem;font-family:var(--font);text-align:center;outline:none;transition:.2s}
+.svc-add-qty:focus{border-color:var(--blue)}
+.btn-add-svc{padding:7px 14px;background:var(--blue);color:#fff;border:none;
+  border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;transition:.2s;
+  white-space:nowrap;font-family:var(--font)}
+.btn-add-svc:hover{background:var(--blue-dark);transform:translateY(-1px)}
+.svc-empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.svc-empty-state .es-icon{font-size:2.8rem;margin-bottom:12px}
+.svc-empty-state p{font-size:.88rem;line-height:1.6}
+
 @media(max-width:768px){
   .stats-grid{grid-template-columns:repeat(3,1fr)}
   .info-grid{grid-template-columns:1fr 1fr}
   .bk-table{display:block;overflow-x:auto}
+  .svc-cards{grid-template-columns:1fr}
 }
 
 /* ── SEARCH + PAGINATION ── */
@@ -430,6 +556,13 @@ body{background:var(--bg);min-height:100vh}
     </button>
     <button class="tab-btn <?= $tab==='rooms'?'active':'' ?>" onclick="switchTab('rooms')">
       🏨 Sơ Đồ Phòng
+    </button>
+    <button class="tab-btn <?= $tab==='services'?'active':'' ?>" onclick="switchTab('services')">
+      🛎️ Dịch Vụ Phát Sinh
+      <?php if (count($activeBookings) > 0): ?>
+      <span style="background:#ef4444;color:#fff;font-size:.6rem;font-weight:700;
+        padding:1px 6px;border-radius:10px;margin-left:2px"><?= count($activeBookings) ?></span>
+      <?php endif; ?>
     </button>
     <button class="tab-btn <?= $tab==='profile'?'active':'' ?>" onclick="switchTab('profile')">
       👤 Thông Tin Nhân Viên
@@ -655,6 +788,127 @@ body{background:var(--bg);min-height:100vh}
 
   </div>
 
+  <!-- ══════════════ TAB: DỊCH VỤ PHÁT SINH ══════════════ -->
+  <div id="tab-services" class="tab-content <?= $tab==='services'?'active':'' ?>">
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-head">
+        <div class="card-head-left">
+          <span class="card-head-icon">🛎️</span>
+          <span class="card-head-title">Dịch Vụ Phát Sinh — Phòng Đang Có Khách</span>
+        </div>
+        <span style="font-size:.75rem;color:var(--muted)">
+          <?= count($activeBookings) ?> phòng đang ở
+        </span>
+      </div>
+      <div class="card-body">
+
+        <?php if (!$activeBookings): ?>
+        <div class="svc-empty-state">
+          <div class="es-icon">🏨</div>
+          <p><strong>Hiện không có phòng nào đang có khách</strong><br>
+             Các dịch vụ phát sinh chỉ có thể thêm khi khách đã check-in.</p>
+        </div>
+        <?php else: ?>
+
+        <p style="font-size:.79rem;color:var(--muted);margin-bottom:16px;line-height:1.6">
+          💡 Chọn dịch vụ và số lượng rồi bấm <strong>+ Thêm</strong> để ghi vào đơn đặt phòng.
+          Dịch vụ sẽ được tính vào hóa đơn khi khách check-out.
+        </p>
+
+        <div class="svc-cards">
+        <?php foreach ($activeBookings as $ab):
+          $ciDate  = date('d/m H:i', strtotime($ab['NgayCheckIn']));
+          $coDate  = date('d/m H:i', strtotime($ab['NgayCheckOut']));
+          $nights  = max(1,(int)ceil((strtotime($ab['NgayCheckOut'])-strtotime($ab['NgayCheckIn']))/86400));
+          $dvItems = $activeDVMap[$ab['MaDP']] ?? [];
+          $dvTotal = array_sum(array_column($dvItems, 'ThanhTien'));
+        ?>
+        <div class="svc-room-card">
+          <!-- HEADER -->
+          <div class="svc-room-head">
+            <div style="font-size:1.4rem">🛏️</div>
+            <div class="svc-room-info">
+              <div class="svc-room-guest"><?= htmlspecialchars($ab['TenKH']) ?></div>
+              <div class="svc-room-sub">
+                <?= htmlspecialchars($ab['SdtKH'] ?? '') ?> &bull;
+                CI: <?= $ciDate ?> → CO: <?= $coDate ?> (<?= $nights ?> đêm)
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+              <span class="svc-room-num"><?= $ab['MaPhong'] ?></span>
+              <span class="svc-room-badge"><?= $ab['LoaiPhong'] ?> · T<?= $ab['Tang'] ?></span>
+            </div>
+          </div>
+
+          <!-- BODY -->
+          <div class="svc-room-body">
+
+            <!-- Danh sách DV đã thêm -->
+            <div class="svc-list-title">Dịch vụ đã thêm</div>
+            <div class="svc-list">
+              <?php if (!$dvItems): ?>
+              <div class="svc-empty">Chưa có dịch vụ phát sinh nào</div>
+              <?php else: ?>
+              <?php foreach ($dvItems as $di): ?>
+              <div class="svc-item">
+                <div class="svc-item-name">
+                  <?= htmlspecialchars($di['TenDV']) ?>
+                </div>
+                <div class="svc-item-qty">× <?= $di['SoLuong'] ?></div>
+                <div class="svc-item-price"><?= number_format($di['ThanhTien'],0,',','.') ?>đ</div>
+                <form method="POST" style="display:inline"
+                      onsubmit="return confirm('Xóa dịch vụ này khỏi đặt phòng <?= $ab['MaDP'] ?>?')">
+                  <?= csrfField() ?>
+                  <input type="hidden" name="action"  value="del_service">
+                  <input type="hidden" name="ma_dp"   value="<?= $ab['MaDP'] ?>">
+                  <input type="hidden" name="ma_ddv"  value="<?= $di['MaDDV'] ?>">
+                  <button type="submit" class="btn-del-svc" title="Xóa dịch vụ này">✕</button>
+                </form>
+              </div>
+              <?php endforeach; ?>
+              <?php endif; ?>
+            </div>
+
+            <!-- Tổng DV (chỉ hiện nếu có) -->
+            <?php if ($dvItems): ?>
+            <div class="svc-total">
+              <span>🧾 Tổng dịch vụ phát sinh:</span>
+              <span><?= number_format($dvTotal,0,',','.') ?>đ</span>
+            </div>
+            <?php endif; ?>
+
+            <!-- Form thêm DV mới -->
+            <div class="svc-list-title" style="margin-top:4px">Thêm dịch vụ</div>
+            <form method="POST" class="svc-add-form">
+              <?= csrfField() ?>
+              <input type="hidden" name="action" value="add_service">
+              <input type="hidden" name="ma_dp"  value="<?= $ab['MaDP'] ?>">
+              <select name="ma_dv" required class="svc-add-select">
+                <option value="" disabled selected>— Chọn dịch vụ —</option>
+                <?php foreach ($allSvcsAvail as $sv): ?>
+                <option value="<?= htmlspecialchars($sv['MaDV']) ?>">
+                  <?= htmlspecialchars($sv['TenDV']) ?>
+                  (<?= number_format($sv['GiaDV'],0,',','.')  ?>đ)
+                </option>
+                <?php endforeach; ?>
+              </select>
+              <input type="number" name="so_luong" value="1" min="1" max="99"
+                     class="svc-add-qty" title="Số lượng">
+              <button type="submit" class="btn-add-svc">+ Thêm</button>
+            </form>
+
+          </div><!-- /body -->
+        </div><!-- /svc-room-card -->
+        <?php endforeach; ?>
+        </div><!-- /svc-cards -->
+
+        <?php endif; ?>
+      </div><!-- /card-body -->
+    </div><!-- /card -->
+
+  </div><!-- /tab-services -->
+
   <!-- ══════════════ TAB: THÔNG TIN NHÂN VIÊN ══════════════ -->
   <div id="tab-profile" class="tab-content <?= $tab==='profile'?'active':'' ?>">
 
@@ -744,7 +998,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  const idx = ['bookings','rooms','profile'].indexOf(name);
+  const idx = ['bookings','rooms','services','profile'].indexOf(name);
   if (idx >= 0) document.querySelectorAll('.tab-btn')[idx].classList.add('active');
 }
 </script>
